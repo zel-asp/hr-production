@@ -7,21 +7,6 @@
             </button>
         </div>
 
-        <?php if (!empty($_SESSION['error'])): ?>
-            <div class="mb-4 space-y-2">
-                <?php foreach ($_SESSION['error'] as $msg): ?>
-                    <div class="flex items-center justify-between bg-red-100 text-red-700 px-4 py-3 rounded shadow-md"
-                        role="alert">
-                        <span>
-                            <?= htmlspecialchars($msg) ?>
-                        </span>
-                        <button onclick="this.parentElement.remove();"
-                            class="ml-4 font-bold text-red-700 hover:text-red-900">&times;</button>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-            <?php unset($_SESSION['error']); ?>
-        <?php endif; ?>
 
         <form action="/update-job" method="POST" class="space-y-4">
             <input type="hidden" name="job_id" id="editJobId">

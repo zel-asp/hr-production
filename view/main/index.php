@@ -11,6 +11,9 @@
     </head>
 
     <body>
+        <?php require base_path('view/partials/message.php'); ?>
+
+
         <!-- Mobile Menu Toggle Button -->
         <button class="mobile-menu-toggle" id="mobileMenuToggle" onclick="toggleMobileSidebar()">
             <i class="fas fa-bars"></i>
@@ -185,6 +188,7 @@
         <!-- All Modals remain the same as before -->
         <?php require base_path('view/main/modals/newJob.php'); ?>
 
+        <?php require base_path('view/main/modals/recentApplicant.php'); ?>
 
         <!-- Edit Job Modal  -->
         <?php require base_path('view/main/modals/editJob.php'); ?>
@@ -198,20 +202,8 @@
         <?php require base_path('view/main/modals/resume.php'); ?>
 
 
-        <!-- Add New Hire Modal -->
-        <?php require base_path('view/main/modals/newHire.php'); ?>
-
-
         <!-- Add Task Modal -->
         <?php require base_path('view/main/modals/addTask.php'); ?>
-
-
-        <!-- Onboarding Detail Modal  - Grace Lee -->
-        <?php require base_path('view/main/modals/onboardingDetail.php'); ?>
-
-
-        <!-- New Review Modal -->
-        <?php require base_path('view/main/modals/newReview.php'); ?>
 
         <!-- Update Progress Modal  -->
         <?php require base_path('view/main/modals/updateProgress.php'); ?>
