@@ -7,22 +7,6 @@
             </button>
         </div>
 
-        <?php if (!empty($_SESSION['error'])): ?>
-            <div class="mb-4 space-y-2">
-                <?php foreach ($_SESSION['error'] as $msg): ?>
-                    <div class="flex items-center justify-between bg-red-100 text-red-700 px-4 py-3 rounded shadow-md"
-                        role="alert">
-                        <span>
-                            <?= htmlspecialchars($msg) ?>
-                        </span>
-                        <button onclick="this.parentElement.remove();"
-                            class="ml-4 font-bold text-red-700 hover:text-red-900">&times;</button>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-            <?php unset($_SESSION['error']); ?>
-        <?php endif; ?>
-
         <form method="POST" action="/postJob" class="space-y-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Job Position</label>
@@ -31,7 +15,10 @@
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Department</label>
                 <select class="profile-input" name="department">
-                    <option value="restaurant" selected>Restaurant</option>
+                    <option value="Management" selected>Management</option>
+                    <option value="Restaurant">Restaurant</option>
+                    <option value="Hotel">Hotel</option>
+                    <option value="HR">HR</option>
                 </select>
             </div>
             <div>
