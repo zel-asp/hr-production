@@ -23,22 +23,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $overall_score = floatval($_POST['overall_score']);
     $interpretation = $_POST['interpretation'];
 
-    $criteria_scores = $_POST['criteria_score']; // array[1..5]
-    $criteria_comments = $_POST['criteria_comment']; // array[1..5]
+    $criteria_scores = $_POST['criteria_score'];
+    $criteria_comments = $_POST['criteria_comment'];
 
     $config = require base_path('config/config.php');
     $db = new Core\Database($config['database']);
 
     try {
-        // Begin transaction
-        $db->query("START TRANSACTION");
+        $db->beginTransaction();
 
-        // Insert into performance_evaluations
         $db->query("
-            INSERT INTO performance_evaluations
-            (employee_id, review_period_start, review_period_end, review_type, overall_score, interpretation)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ", [$employee_id, $review_start, $review_end, $review_type, $overall_score, $interpretation]);
+        INSERT INTO performance_evaluations
+        (employee_id, review_period_start, review_period_end, review_type, overall_score, interpretation)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ", [$employee_id, $review_start, $review_end, $review_type, $overall_score, $interpretation]);
 
         $evaluation_id = $db->lastInsertId();
 
@@ -64,21 +62,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $description = $criteriaDescriptions[$num];
 
             $db->query("
-                INSERT INTO performance_criteria_scores
-                (evaluation_id, criteria_number, criteria_label, criteria_description, score, comments)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ", [$evaluation_id, $num, $label, $description, $score, $comment]);
+            INSERT INTO performance_criteria_scores
+            (evaluation_id, criteria_number, criteria_label, criteria_description, score, comments)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ", [$evaluation_id, $num, $label, $description, $score, $comment]);
         }
 
+        // **Update evaluation_status for this employee**
+        $db->query("
+        UPDATE employees
+        SET evaluation_status = 'Evaluated'
+        WHERE id = ?
+    ", [$employee_id]);
+
         // Commit transaction
-        $db->query("COMMIT");
+        $db->commit();
 
         $_SESSION['success'] = ["Performance evaluation saved successfully!"];
         header('Location:/main?tab=performance');
         exit;
 
     } catch (Exception $e) {
-        $db->query("ROLLBACK");
+        $db->rollBack();
         $_SESSION['error'] = ["Error saving evaluation: " . $e->getMessage()];
         header('Location:/main?tab=performance');
         exit;
