@@ -7,7 +7,6 @@ $db = new Database($config['database']);
 $_SESSION['success'] ??= [];
 $_SESSION['error'] ??= [];
 
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // CSRF check
@@ -35,6 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $db->beginTransaction();
 
+        // Insert into PIP table
         $db->query(
             "INSERT INTO performance_improvement_plans 
             (employee_id, evaluation_id, improvement_areas, goal1, goal2, goal3, pip_start_date, pip_end_date)
@@ -52,8 +52,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]
         );
 
+        // Update employee's evaluation status to "Evaluated"
+        $db->query(
+            "UPDATE employees SET status = 'Improvement' WHERE id = :employee_id",
+            [':employee_id' => $employeeId]
+        );
+
         $db->commit();
-        $_SESSION['success'][] = "Performance Improvement Plan created successfully.";
+        $_SESSION['success'][] = "Performance Improvement Plan created successfully and status marked as Improvement.";
     } catch (\Throwable $e) {
         if ($db->inTransaction())
             $db->rollBack();

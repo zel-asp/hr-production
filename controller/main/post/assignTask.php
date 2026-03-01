@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Validation
         if (!$assigned_to)
-            $_SESSION['error'][] = 'Invalid applicant selected.';
+            $_SESSION['error'][] = 'Invalid employee selected.';
         if (empty($task_type))
             $_SESSION['error'][] = 'Task type is required.';
         if (empty($task_description))
@@ -39,6 +39,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (empty($_SESSION['error'])) {
             try {
+                // First, check if employee exists and get current onboarding status
+                $employee = $db->query("
+                    SELECT id, onboarding_status, full_name 
+                    FROM employees 
+                    WHERE id = :employee_id
+                ", [
+                    ':employee_id' => $assigned_to
+                ])->fetch_one();
+
+                if (!$employee) {
+                    $_SESSION['error'][] = "Employee with ID {$assigned_to} not found.";
+                    header('Location: /main?tab=learning');
+                    exit();
+                }
+
+                // Check if employee is already onboarded
+                if ($employee['onboarding_status'] === 'Onboarded') {
+                    $_SESSION['warning'][] = "Warning: This employee is already Onboarded. Task will still be assigned.";
+                }
+
                 // start transaction to ensure both updates succeed together
                 $db->beginTransaction();
 
@@ -55,29 +75,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':assigned_staff' => $assigned_staff
                 ]);
 
-                // update employee onboarding status to 'In Progress'
-                $db->query("
-                    UPDATE employees 
-                    SET onboarding_status = 'In Progress' 
-                    WHERE id = :employee_id
-                ", [
-                    ':employee_id' => $assigned_to
-                ]);
+                // Get the ID of the newly inserted task
+                $taskId = $db->lastInsertId();
+
+                // Update employee onboarding status to 'In Progress' only if it's 'Onboarding'
+                // This prevents overwriting 'Onboarded' or 'In Progress'
+                if ($employee['onboarding_status'] === 'Onboarding') {
+                    $db->query("
+                        UPDATE employees 
+                        SET onboarding_status = 'In Progress', 
+                            updated_at = NOW() 
+                        WHERE id = :employee_id 
+                        AND onboarding_status = 'Onboarding'
+                    ", [
+                        ':employee_id' => $assigned_to
+                    ]);
+
+                    $rowsAffected = $db->count();
+
+                    if ($rowsAffected > 0) {
+                        error_log("Employee ID {$assigned_to} onboarding_status updated from 'Onboarding' to 'In Progress' due to new task ID {$taskId}");
+                    }
+                } else {
+                    // Log if status wasn't updated
+                    error_log("Employee ID {$assigned_to} onboarding_status remains '{$employee['onboarding_status']}' (not updated to In Progress)");
+                }
 
                 // commit transaction if both queries succeeded
                 $db->commit();
 
-                $_SESSION['success'][] = 'Task assigned successfully! Onboarding status updated to In Progress.';
+                // Success message based on status update
+                if ($employee['onboarding_status'] === 'Onboarding') {
+                    $_SESSION['success'][] = 'Task assigned successfully! Onboarding status updated to In Progress.';
+                } elseif ($employee['onboarding_status'] === 'In Progress') {
+                    $_SESSION['success'][] = 'Task assigned successfully! (Onboarding already in progress)';
+                } elseif ($employee['onboarding_status'] === 'Onboarded') {
+                    $_SESSION['success'][] = 'Task assigned successfully! (Employee is already Onboarded)';
+                } else {
+                    $_SESSION['success'][] = 'Task assigned successfully!';
+                }
 
             } catch (PDOException $e) {
                 // rollback if anything failed
                 $db->rollBack();
+                error_log("Error assigning task: " . $e->getMessage());
                 $_SESSION['error'][] = 'Database error: ' . $e->getMessage();
             }
         }
     }
 
-    // redirect back
     header('Location: /main?tab=learning');
     exit;
 }

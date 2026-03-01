@@ -3,13 +3,15 @@ use Core\Database;
 
 header('Content-Type: application/json');
 
+$config = require base_path('config/config.php');
+$db = new Database($config['database']);
+
 // session already started elsewhere
 $_SESSION['success'] ??= [];
 $_SESSION['error'] ??= [];
 
 try {
-    $config = require base_path('config/config.php');
-    $db = new Database($config['database']);
+
 
     $input = json_decode(file_get_contents('php://input'), true);
     if (!$input)
@@ -17,6 +19,7 @@ try {
 
     $id = (int) ($input['id'] ?? 0);
     $status = ucfirst(strtolower(trim($input['status'] ?? '')));
+    $startDate = $input['start_date'] ?? null;
     $csrf = $input['csrf_token'] ?? '';
 
     if (!hash_equals($_SESSION['csrf_token'] ?? '', $csrf)) {
@@ -38,12 +41,22 @@ try {
     $applicant = $current[0];
 
     if ($status === 'Hired') {
+        // Validate start date is provided
+        if (empty($startDate)) {
+            throw new Exception("Start date is required for hired applicants");
+        }
+
         $db->query("
             UPDATE applicants 
             SET status = :status,
-                hired_date = IF(hired_date IS NULL, NOW(), hired_date)
+                hired_date = IF(hired_date IS NULL, NOW(), hired_date),
+                start_date = :start_date
             WHERE id = :id
-        ", ['status' => $status, 'id' => $id]);
+        ", [
+            'status' => $status,
+            'start_date' => $startDate,
+            'id' => $id
+        ]);
 
         // Check if already exists in employees
         $exists = $db->query(
@@ -52,7 +65,7 @@ try {
         )->find();
 
         if (!$exists) {
-            // Insert into employees including phone and department
+            // Insert into employees including phone, department, and start date
             $employeeNumber = 'EMP-' . str_pad($id, 3, '0', STR_PAD_LEFT);
             $db->query("
                 INSERT INTO employees 
@@ -67,20 +80,21 @@ try {
                 'phone' => $applicant['phone'] ?? null,
                 'position' => $applicant['position'],
                 'department' => $applicant['department'] ?? null,
-                'start_date' => $applicant['start_date'] ?? null,
+                'start_date' => $startDate,
                 'hired_date' => $applicant['hired_date'] ?? date('Y-m-d')
             ]);
         }
 
-        $_SESSION['success'][] = "Applicant successfully marked as Hired.";
-        $message = "Applicant successfully marked as Hired.";
+        $_SESSION['success'][] = "Applicant successfully marked as Hired with start date {$startDate}.";
+        $message = "Applicant successfully marked as Hired with start date {$startDate}.";
 
     } else {
-        // Update applicant status and reset hired_date
+        // Update applicant status and reset hired_date and start_date
         $db->query("
             UPDATE applicants 
             SET status = :status,
-                hired_date = NULL
+                hired_date = NULL,
+                start_date = NULL
             WHERE id = :id
         ", ['status' => $status, 'id' => $id]);
 

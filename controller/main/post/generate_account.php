@@ -8,74 +8,87 @@ $db = new Database($config['database']);
 $_SESSION['success'] ??= [];
 $_SESSION['error'] ??= [];
 
+// Only allow POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['applicant_id'])) {
 
     try {
-        $applicantId = $_POST['applicant_id'];
-        $employeeNumber = $_POST['employee_id'];  // This is EMP-031 from employees table
-        $fullName = $_POST['full_name'];
-        $email = $_POST['email'];
-        $position = $_POST['position'];
 
-        // generate username from email
+        $applicantId = $_POST['applicant_id'];
+
+        // ==========================
+        // 1️⃣ Get employee from DB
+        // ==========================
+        $employee = $db->query(
+            "SELECT employee_number, full_name, email,department 
+             FROM employees 
+             WHERE applicant_id = ? 
+             LIMIT 1",
+            [$applicantId]
+        )->fetch_one();
+
+        if (!$employee) {
+            $_SESSION['error'][] = 'Employee record not found.';
+            header('Location: /main?tab=onboarding');
+            exit;
+        }
+
+        $employeeNumber = $employee['employee_number']; // EMP-031
+        $email = $employee['email'];
+        $fullName = $employee['full_name'];
+        $department = $employee['department'];
+
+        // ==========================
+        // 2️⃣ Generate username
+        // ==========================
         $username = explode('@', $email)[0];
 
-        // use employee number as password (EMP-031)
-        $password = $employeeNumber;
-        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+        // ==========================
+        // 3️⃣ Use employee number as password
+        // ==========================
+        $plainPassword = $employeeNumber; // EMP-031
+        $hashedPassword = password_hash($plainPassword, PASSWORD_DEFAULT);
 
-        // generate a unique employee_id for employee_accounts table
-        $year = date('Y');
-        $randomNum = rand(100, 999);
-        $accountEmployeeId = "EMP-$year-$randomNum";
-
-        // check if account already exists
+        // ==========================
+        // 4️⃣ Check if account exists
+        // ==========================
         $existing = $db->query(
             "SELECT id FROM employee_accounts WHERE applicant_id = ?",
             [$applicantId]
-        )->find();
+        )->fetch_one();
 
         if ($existing) {
-            $_SESSION['error'][] = 'An account already exists for this employee';
+            $_SESSION['error'][] = 'An account already exists for this employee.';
             header('Location: /main?tab=onboarding&modal=generateAccountModal');
             exit;
         }
 
-        // check if employee number is unique in employee_accounts
-        $existingEmpId = $db->query(
-            "SELECT id FROM employee_accounts WHERE employee_id = ?",
-            [$accountEmployeeId]
-        )->find();
-
-        // if not unique, generate another one
-        while ($existingEmpId) {
-            $randomNum = rand(100, 999);
-            $accountEmployeeId = "EMP-$year-$randomNum";
-            $existingEmpId = $db->query(
-                "SELECT id FROM employee_accounts WHERE employee_id = ?",
-                [$accountEmployeeId]
-            )->find();
-        }
-
-        // insert new account
+        // ==========================
+        // 5️⃣ Insert account
+        // ==========================
         $db->query(
-            "INSERT INTO employee_accounts (applicant_id, employee_id, username, password, email) 
-            VALUES (?, ?, ?, ?, ?)",
-            [$applicantId, $accountEmployeeId, $username, $hashedPassword, $email]
+            "INSERT INTO employee_accounts 
+             (applicant_id, employee_id, username, password, email,department) 
+             VALUES (?, ?, ?, ?, ?,?)",
+            [$applicantId, $employeeNumber, $username, $hashedPassword, $email, $department]
         );
 
-        $_SESSION['success'][] = 'Employee account generated successfully';
-        $_SESSION['success'][] = "Username: $username, Password: $employeeNumber";
+        // ==========================
+        // 6️⃣ Success message
+        // ==========================
+        $_SESSION['success'][] = 'Employee account generated successfully.';
+        $_SESSION['success'][] = "Email: $email";
+        $_SESSION['success'][] = "Temporary Password: $plainPassword";
 
         header('Location: /main?tab=onboarding');
         exit;
 
     } catch (Exception $e) {
-        // log error for debugging
-        error_log('Account generation error: ' . $e->getMessage());
 
-        $_SESSION['error'][] = 'Something went wrong while generating the account';
-        header('Location: /main?tab=onboarding&modal=generateAccountModal');
+        echo "<pre>";
+        echo "Error Message: " . $e->getMessage() . "\n";
+        echo "File: " . $e->getFile() . "\n";
+        echo "Line: " . $e->getLine() . "\n";
+        echo "</pre>";
         exit;
     }
 }
