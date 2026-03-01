@@ -1,0 +1,7 @@
+1. Crsf token validation
+2. XSS Prevention
+3. Validation ng input field
+4. Password hashing
+5. Role base authentication
+6. if session_token not set display unauthorize-> login oage
+7. if session_token in db and session are != -> redirect to login page
