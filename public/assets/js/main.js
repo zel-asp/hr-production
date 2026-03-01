@@ -62,22 +62,39 @@ document.addEventListener('DOMContentLoaded', () => {
     // UPDATE STATUS BUTTONS
     document.querySelectorAll('.update-status-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
-
             const id = btn.dataset.id;
             const csrf = btn.dataset.csrf;
             const row = document.querySelector(`.applicant-row[data-id="${id}"]`);
             const select = row.querySelector('.status-select');
             const status = select.value;
 
-            try {
+            // Get start date if status is Hired
+            let startDate = null;
+            if (status === 'Hired') {
+                const startDateInput = row.querySelector('.start-date-input');
+                if (startDateInput) {
+                    startDate = startDateInput.value;
+                    // Validate start date is provided
+                    if (!startDate) {
+                        alert('Please select a start date for hired applicant');
+                        return;
+                    }
+                }
+            }
 
+            try {
                 const res = await fetch('/updateApplicantStatus', {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id, status, csrf_token: csrf })
+                    body: JSON.stringify({
+                        id,
+                        status,
+                        start_date: startDate,
+                        csrf_token: csrf
+                    })
                 });
 
-                const text = await res.text(); // get raw response first
+                const text = await res.text();
                 console.log("Server response:", text);
 
                 let data;
@@ -102,8 +119,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error("Update error:", err);
                 alert(err.message);
             }
-
         });
+    });
+
+    // Show/hide start date input when status changes
+    document.addEventListener('change', (e) => {
+        if (e.target.classList.contains('status-select')) {
+            const id = e.target.dataset.id;
+            const row = document.querySelector(`.applicant-row[data-id="${id}"]`);
+            const startDateContainer = row.querySelector('.start-date-container');
+
+            if (e.target.value === 'Hired') {
+                startDateContainer.classList.remove('hidden');
+            } else {
+                startDateContainer.classList.add('hidden');
+            }
+        }
     });
 
     // Check mobile view initially and on resize
@@ -353,12 +384,9 @@ function updateEmployeeDetails(select) {
     const selected = select.options[select.selectedIndex];
 
     if (selected.value) {
-        const year = new Date().getFullYear();
-        const randomNum = Math.floor(Math.random() * 900) + 100;
-        const employeeId = `EMP-${year}-${randomNum}`;
-
         // Update form fields
-        document.getElementById('empId').value = employeeId;
+        document.getElementById('empId').value = selected.dataset.employeeId;
+        document.getElementById('dept').value = selected.dataset.dept;
         document.getElementById('empName').value = selected.dataset.name;
         document.getElementById('empPosition').value = selected.dataset.position;
         document.getElementById('empEmail').value = selected.dataset.email;
