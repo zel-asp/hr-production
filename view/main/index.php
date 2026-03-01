@@ -188,6 +188,8 @@
         <!-- All Modals remain the same as before -->
         <?php require base_path('view/main/modals/newJob.php'); ?>
 
+        <?php require base_path('view/main/modals/viewShift.php'); ?>
+
         <?php require base_path('view/main/modals/recentApplicant.php'); ?>
 
         <!-- Edit Job Modal  -->

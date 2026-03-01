@@ -22,8 +22,10 @@
 
                             <?php foreach ($availableEmployees as $employee): ?>
                                 <option value="<?= $employee['id'] ?>"
+                                    data-employee-Id="EMP-<?= str_pad($employee['id'], 3, '0', STR_PAD_LEFT) ?>"
                                     data-name="<?= htmlspecialchars($employee['full_name']) ?>"
                                     data-email="<?= htmlspecialchars($employee['email']) ?>"
+                                    data-dept="<?= htmlspecialchars($employee['department']) ?>"
                                     data-position="<?= htmlspecialchars($employee['position']) ?>"
                                     data-start="<?= date('M d, Y', strtotime($employee['start_date'] ?? $employee['hired_date'])) ?>">
 
@@ -58,6 +60,11 @@
                         <div>
                             <label class="block text-sm font-medium mb-1">Email</label>
                             <input type="email" id="empEmail" name="email"
+                                class="profile-input w-full p-2 border rounded bg-gray-100" readonly>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Department</label>
+                            <input type="text" id="dept" name="department"
                                 class="profile-input w-full p-2 border rounded bg-gray-100" readonly>
                         </div>
                         <div>
@@ -132,68 +139,6 @@
         </button>
     </div>
 
-    <!-- Probationary Employees List -->
-    <div class="card p-6 mb-6">
-        <h3 class="text-lg font-semibold mb-4">Probationary Employees Awaiting Account Generation</h3>
-        <div class="overflow-x-auto">
-            <table class="w-full">
-                <thead>
-                    <tr class="border-b border-gray-200">
-                        <th class="text-left py-3">Employee ID</th>
-                        <th class="text-left py-3">Name</th>
-                        <th class="text-left py-3">Position</th>
-                        <th class="text-left py-3">Start Date</th>
-                        <th class="text-left py-3">Status</th>
-                        <th class="text-left py-3">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr class="border-b border-gray-100">
-                        <td class="py-3">EMP-2026-001</td>
-                        <td class="py-3 font-medium">Grace Lee</td>
-                        <td class="py-3">Restaurant Server</td>
-                        <td class="py-3">Feb 15, 2026</td>
-                        <td class="py-3"><span class="status-badge bg-yellow-100 text-yellow-800">Account Pending</span>
-                        </td>
-                        <td class="py-3">
-                            <button class="text-primary hover:text-primary-dark"
-                                onclick="openModal('generateAccountModal')">
-                                <i class="fas fa-user-plus mr-1"></i>Generate
-                            </button>
-                        </td>
-                    </tr>
-                    <tr class="border-b border-gray-100">
-                        <td class="py-3">EMP-2026-002</td>
-                        <td class="py-3 font-medium">John Smith</td>
-                        <td class="py-3">Line Cook</td>
-                        <td class="py-3">Feb 18, 2026</td>
-                        <td class="py-3"><span class="status-badge bg-yellow-100 text-yellow-800">Account Pending</span>
-                        </td>
-                        <td class="py-3">
-                            <button class="text-primary hover:text-primary-dark"
-                                onclick="openModal('generateAccountModal')">
-                                <i class="fas fa-user-plus mr-1"></i>Generate
-                            </button>
-                        </td>
-                    </tr>
-                    <tr class="border-b border-gray-100">
-                        <td class="py-3">EMP-2026-003</td>
-                        <td class="py-3 font-medium">Maria Garcia</td>
-                        <td class="py-3">Server Assistant</td>
-                        <td class="py-3">Feb 20, 2026</td>
-                        <td class="py-3"><span class="status-badge bg-yellow-100 text-yellow-800">Account Pending</span>
-                        </td>
-                        <td class="py-3">
-                            <button class="text-primary hover:text-primary-dark"
-                                onclick="openModal('generateAccountModal')">
-                                <i class="fas fa-user-plus mr-1"></i>Generate
-                            </button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
 
     <!-- Generated Accounts -->
     <div class="card p-6">
