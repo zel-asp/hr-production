@@ -19,6 +19,7 @@
                     <option value="Restaurant">Restaurant</option>
                     <option value="Hotel">Hotel</option>
                     <option value="HR">HR</option>
+                    <option value="Logistic">Logistic</option>
                 </select>
             </div>
             <div>
