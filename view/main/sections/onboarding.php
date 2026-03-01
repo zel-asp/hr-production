@@ -56,8 +56,8 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if (!empty($probationaryEmployees)): ?>
-                        <?php foreach ($probationaryEmployees as $employee): ?>
+                    <?php if (!empty($paginatedNewHires)): ?>
+                        <?php foreach ($paginatedNewHires as $employee): ?>
                             <?php
                             $onboardingStatus = $employee['onboarding_status'] ?? 'Onboarding';
 
@@ -69,7 +69,7 @@
                             };
                             ?>
                             <tr class="border-b border-gray-100">
-                                <td class="py-3 font-medium">EMP-<?= str_pad($employee['id'], 3, '0', STR_PAD_LEFT) ?></td>
+                                <td class="py-3 font-medium"><?= htmlspecialchars($employee['employee_number']) ?></td>
                                 <td class="py-3 font-medium"><?= htmlspecialchars($employee['full_name']) ?></td>
                                 <td class="py-3"><?= htmlspecialchars($employee['position']) ?></td>
                                 <td class="py-3">
@@ -86,22 +86,22 @@
                         </tr>
                     <?php endif; ?>
                 </tbody>
-                <?php if ($totalNewHirePages > 1): ?>
-                    <div class="flex justify-end mt-4 space-x-2">
-                        <?php for ($i = 1; $i <= $totalNewHirePages; $i++): ?>
-                            <a href="?tab=onboarding&nh_page=<?= $i ?>"
-                                class="px-3 py-1 border rounded <?= $i === $nhPage ? 'bg-blue-500 text-white' : 'bg-white text-gray-700' ?>">
-                                <?= $i ?>
-                            </a>
-                        <?php endfor; ?>
-                    </div>
-                <?php endif; ?>
             </table>
+            <?php if ($totalNewHirePages > 1): ?>
+                <div class="flex justify-end mt-4 space-x-2">
+                    <?php for ($i = 1; $i <= $totalNewHirePages; $i++): ?>
+                        <a href="?tab=onboarding&nh_page=<?= $i ?>"
+                            class="px-3 py-1 border rounded <?= $i === $nhPage ? 'bg-blue-500 text-white' : 'bg-white text-gray-700' ?>">
+                            <?= $i ?>
+                        </a>
+                    <?php endfor; ?>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 
     <!-- Recent Accounts Generated -->
-    <div class="card p-6 mb-6">
+    <div class="card p-6 mb-6" id="recentAccount">
         <h3 class="text-lg font-semibold mb-4">Recent Employee Accounts</h3>
         <div class="overflow-x-auto">
             <table class="w-full">
@@ -168,8 +168,8 @@
             <?php if ($totalPages > 1): ?>
                 <div class="flex justify-end mt-4 space-x-2">
                     <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                        <a href="?tab=onboarding&page=<?= $i ?>"
-                            class="px-3 py-1 border rounded <?= $i === $page ? 'bg-blue-500 text-white' : 'bg-white text-gray-700' ?>">
+                        <a href="?tab=onboarding&page=<?= $i ?>#recentAccount"
+                            class="px-3 py-1 border rounded <?= $i == $page ? 'bg-blue-500 text-white' : 'bg-white text-gray-700' ?>">
                             <?= $i ?>
                         </a>
                     <?php endfor; ?>
