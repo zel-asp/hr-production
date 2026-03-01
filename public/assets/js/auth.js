@@ -1,28 +1,40 @@
-(function () {
-    const employeeBtn = document.getElementById('show-employee');
-    const hrBtn = document.getElementById('show-hr');
-    const employeeForm = document.getElementById('employee-form');
-    const hrForm = document.getElementById('hr-form');
+function switchToHR() {
+    const container = document.getElementById('splitContainer');
+    container.classList.remove('employee-mode');
+    container.classList.add('hr-mode');
 
-    function setActiveButton(active) {
-        if (active === 'employee') {
-            employeeBtn.className = 'flex-1 py-2.5 text-sm font-medium rounded-md bg-white shadow-sm text-[#1e3a5f] border border-[#d0d9e6]';
-            hrBtn.className = 'flex-1 py-2.5 text-sm font-medium text-primary hover:text-[#1e3a5f]';
-        } else {
-            hrBtn.className = 'flex-1 py-2.5 text-sm font-medium rounded-md bg-white shadow-sm text-[#1e3a5f] border border-[#d0d9e6]';
-            employeeBtn.className = 'flex-1 py-2.5 text-sm font-medium text-primary hover:text-[#1e3a5f]';
-        }
+    // Update mobile buttons
+    document.getElementById('mobileEmployeeBtn').classList.remove('active');
+    document.getElementById('mobileHRBtn').classList.add('active');
+
+    // Update URL
+    const url = new URL(window.location);
+    url.searchParams.set('mode', 'hr');
+    history.replaceState({}, '', url);
+}
+
+function switchToEmployee() {
+    const container = document.getElementById('splitContainer');
+    container.classList.remove('hr-mode');
+    container.classList.add('employee-mode');
+
+    // Update mobile buttons
+    document.getElementById('mobileHRBtn').classList.remove('active');
+    document.getElementById('mobileEmployeeBtn').classList.add('active');
+
+    // Update URL
+    const url = new URL(window.location);
+    url.searchParams.set('mode', 'employee');
+    history.replaceState({}, '', url);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const mode = urlParams.get('mode');
+
+    if (mode === 'hr') {
+        switchToHR();
+    } else {
+        switchToEmployee();
     }
-
-    employeeBtn.addEventListener('click', function () {
-        employeeForm.classList.remove('hidden');
-        hrForm.classList.add('hidden');
-        setActiveButton('employee');
-    });
-
-    hrBtn.addEventListener('click', function () {
-        hrForm.classList.remove('hidden');
-        employeeForm.classList.add('hidden');
-        setActiveButton('hr');
-    });
-})();
+});
