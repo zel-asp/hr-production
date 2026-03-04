@@ -5,8 +5,7 @@ require base_path("core/middleware/employeeAuth.php");
 $config = require base_path('config/config.php');
 $db = new Database($config['database']);
 
-$_SESSION['success'] ??= [];
-$_SESSION['error'] ??= [];
+
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = (int) ($_POST['id'] ?? 0);

@@ -5,9 +5,6 @@ use Core\Database;
 $config = require base_path('config/config.php');
 $db = new Database($config['database']);
 
-// Initialize messages
-$_SESSION['success'] ??= [];
-$_SESSION['error'] ??= [];
 
 try {
     // Handle Delete Job Posting

@@ -2,57 +2,56 @@
 
 use Core\Database;
 
-// Turn off error display and turn on error logging
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 error_reporting(E_ALL);
 
-// Clear any output buffers
-while (ob_get_level()) {
-    ob_end_clean();
-}
+// Set PHP timezone to Asia/Manila (Philippine Time)
+date_default_timezone_set('Asia/Manila');
 
-// Set JSON header
-header('Content-Type: application/json');
+ob_start();
 
 require base_path('core/middleware/employeeAuth.php');
 
 $config = require base_path('config/config.php');
 $db = new Database($config['database']);
 
-// Only allow POST requests
+// Set MySQL timezone for this connection to match PHP
+try {
+    $db->query("SET time_zone = '+08:00'");
+} catch (\Throwable $th) {
+    error_log("Failed to set MySQL timezone: " . $th->getMessage());
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    ob_clean(); // Clear any output
     http_response_code(405);
+    header('Content-Type: application/json');
     echo json_encode(['success' => false, 'message' => 'Method not allowed']);
     exit();
 }
 
-// Get JSON input
 $input = json_decode(file_get_contents('php://input'), true);
 
-// Check if JSON is valid
 if (json_last_error() !== JSON_ERROR_NONE) {
+    ob_clean(); // Clear any output
     http_response_code(400);
+    header('Content-Type: application/json');
     echo json_encode(['success' => false, 'message' => 'Invalid JSON input']);
     exit();
 }
 
-// Validate CSRF token
-if (
-    !isset($input['csrf_token']) ||
-    !isset($_SESSION['csrf_token']) ||
-    $input['csrf_token'] !== $_SESSION['csrf_token']
-) {
+if (!isset($input['csrf_token']) || !isset($_SESSION['csrf_token']) || $input['csrf_token'] !== $_SESSION['csrf_token']) {
+    ob_clean(); // Clear any output
     http_response_code(403);
+    header('Content-Type: application/json');
     echo json_encode(['success' => false, 'message' => 'Invalid CSRF token']);
     exit();
 }
 
-// Get action and attendance_id from request
 $action = $input['action'] ?? '';
 $attendanceId = $input['attendance_id'] ?? null;
 
-// Get employee ID from session
 $employeeData = $_SESSION['employee']['employee_record_id'] ?? null;
 if (is_array($employeeData) && isset($employeeData['id'])) {
     $employeeId = $employeeData['id'];
@@ -61,18 +60,28 @@ if (is_array($employeeData) && isset($employeeData['id'])) {
 }
 
 if (!$employeeId) {
+    ob_clean();
     http_response_code(401);
+    header('Content-Type: application/json');
     echo json_encode(['success' => false, 'message' => 'Employee not authenticated']);
     exit();
 }
 
-// Get employee's shift information
-$employeeShift = $db->query("
-    SELECT s.*, e.shift_id 
-    FROM employees e
-    LEFT JOIN shifts s ON e.shift_id = s.id
-    WHERE e.id = ?
-", [$employeeId])->fetch_one();
+try {
+    $employeeShift = $db->query("
+        SELECT s.*, e.shift_id 
+        FROM employees e
+        LEFT JOIN shifts s ON e.shift_id = s.id
+        WHERE e.id = ?
+    ", [$employeeId])->fetch_one();
+} catch (Exception $e) {
+    error_log("Database error in attendance.php: " . $e->getMessage());
+    ob_clean();
+    http_response_code(500);
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'Database error occurred']);
+    exit();
+}
 
 $today = date('Y-m-d');
 $now = date('Y-m-d H:i:s');
@@ -83,10 +92,9 @@ try {
 
     switch ($action) {
         case 'clock_in':
-            // Check if already clocked in today
             $existing = $db->query(
                 "SELECT id FROM attendance 
-                 WHERE employee_id = ? AND date = ? AND status != 'clocked_out'",
+                WHERE employee_id = ? AND date = ? AND status != 'clocked_out'",
                 [$employeeId, $today]
             )->fetch_one();
 
@@ -112,16 +120,14 @@ try {
                 }
             }
 
-            // Create new attendance record
             $db->query(
                 "INSERT INTO attendance (
                     employee_id, shift_id, clock_in, status, date, 
                     late_minutes, late_status, created_at
-                ) VALUES (?, ?, ?, 'clocked_in', ?, ?, ?, NOW())",
+                ) VALUES (?, ?, NOW(), 'clocked_in', ?, ?, ?, NOW())",
                 [
                     $employeeId,
                     $employeeShift['shift_id'] ?? null,
-                    $now,
                     $today,
                     $lateMinutes,
                     $lateStatus
@@ -132,6 +138,13 @@ try {
 
             $db->commit();
 
+            $insertedTime = $db->query(
+                "SELECT TIME_FORMAT(clock_in, '%h:%i %p') as time FROM attendance WHERE id = ?",
+                [$newAttendanceId]
+            )->fetch_one();
+
+            ob_clean();
+            header('Content-Type: application/json');
             echo json_encode([
                 'success' => true,
                 'message' => $lateMinutes > 0 ? 'Clocked in ' . $lateMinutes . ' minutes late' : 'Clocked in on time',
@@ -140,7 +153,8 @@ try {
                 'elapsed_seconds' => 0,
                 'pause_total' => 0,
                 'late_minutes' => $lateMinutes,
-                'late_status' => $lateStatus
+                'late_status' => $lateStatus,
+                'clock_in_time' => $insertedTime['time'] ?? date('h:i A')
             ]);
             break;
 
@@ -152,7 +166,7 @@ try {
             // Verify attendance belongs to employee and is clocked in
             $attendance = $db->query(
                 "SELECT id FROM attendance 
-                 WHERE id = ? AND employee_id = ? AND status = 'clocked_in'",
+                WHERE id = ? AND employee_id = ? AND status = 'clocked_in'",
                 [$attendanceId, $employeeId]
             )->fetch_one();
 
@@ -160,26 +174,28 @@ try {
                 throw new Exception('Cannot pause - no active shift found');
             }
 
-            // Update to paused status
+            // Update to paused status using NOW() for MySQL time
             $db->query(
                 "UPDATE attendance 
-                 SET pause_start = ?, status = 'paused', updated_at = NOW() 
-                 WHERE id = ? AND employee_id = ?",
-                [$now, $attendanceId, $employeeId]
+                SET pause_start = NOW(), status = 'paused', updated_at = NOW() 
+                WHERE id = ? AND employee_id = ?",
+                [$attendanceId, $employeeId]
             );
 
             // Get elapsed time so far
             $currentAttendance = $db->query(
                 "SELECT 
-                    TIMESTAMPDIFF(SECOND, clock_in, ?) - (pause_total * 60) as elapsed,
+                    TIMESTAMPDIFF(SECOND, clock_in, NOW()) - (pause_total * 60) as elapsed,
                     pause_total
-                 FROM attendance 
-                 WHERE id = ?",
-                [$now, $attendanceId]
+                FROM attendance 
+                WHERE id = ?",
+                [$attendanceId]
             )->fetch_one();
 
             $db->commit();
 
+            ob_clean();
+            header('Content-Type: application/json');
             echo json_encode([
                 'success' => true,
                 'message' => 'Shift paused',
@@ -195,10 +211,10 @@ try {
                 throw new Exception('No active attendance record');
             }
 
-            // Get pause start time
+            //  pause start time
             $attendance = $db->query(
                 "SELECT pause_start, pause_total FROM attendance 
-                 WHERE id = ? AND employee_id = ? AND status = 'paused'",
+                WHERE id = ? AND employee_id = ? AND status = 'paused'",
                 [$attendanceId, $employeeId]
             )->fetch_one();
 
@@ -206,32 +222,34 @@ try {
                 throw new Exception('Cannot resume - no paused shift found');
             }
 
-            // Calculate pause duration in minutes
+            // Calculate pause duration in minutes using NOW()
             $pauseMinutes = round((strtotime($now) - strtotime($attendance['pause_start'])) / 60);
 
-            // Update record - add pause minutes and set status back to clocked_in
+            //  add pause minutes and set status back to clocked_in
             $db->query(
                 "UPDATE attendance 
-                 SET pause_total = pause_total + ?, 
-                     pause_start = NULL, 
-                     status = 'clocked_in',
-                     updated_at = NOW()
-                 WHERE id = ? AND employee_id = ?",
+                SET pause_total = pause_total + ?, 
+                    pause_start = NULL, 
+                    status = 'clocked_in',
+                    updated_at = NOW()
+                WHERE id = ? AND employee_id = ?",
                 [$pauseMinutes, $attendanceId, $employeeId]
             );
 
             // Get updated elapsed time
             $currentAttendance = $db->query(
                 "SELECT 
-                    TIMESTAMPDIFF(SECOND, clock_in, ?) - ((pause_total + ?) * 60) as elapsed,
+                    TIMESTAMPDIFF(SECOND, clock_in, NOW()) - ((pause_total + ?) * 60) as elapsed,
                     pause_total + ? as new_pause_total
-                 FROM attendance 
-                 WHERE id = ?",
-                [$now, $pauseMinutes, $pauseMinutes, $attendanceId]
+                FROM attendance 
+                WHERE id = ?",
+                [$pauseMinutes, $pauseMinutes, $attendanceId]
             )->fetch_one();
 
             $db->commit();
 
+            ob_clean();
+            header('Content-Type: application/json');
             echo json_encode([
                 'success' => true,
                 'message' => 'Shift resumed',
@@ -250,7 +268,7 @@ try {
             // Get attendance record
             $attendance = $db->query(
                 "SELECT clock_in, pause_total, late_minutes, shift_id FROM attendance 
-                 WHERE id = ? AND employee_id = ? AND status != 'clocked_out'",
+                WHERE id = ? AND employee_id = ? AND status != 'clocked_out'",
                 [$attendanceId, $employeeId]
             )->fetch_one();
 
@@ -258,7 +276,7 @@ try {
                 throw new Exception('No active shift found');
             }
 
-            // Calculate total worked time
+            // Calculate total worked time using NOW()
             $clockIn = strtotime($attendance['clock_in']);
             $clockOut = strtotime($now);
             $pauseMinutes = $attendance['pause_total'] ?? 0;
@@ -283,17 +301,17 @@ try {
                 }
             }
 
-            // Update attendance record
+            // Update attendance record using NOW()
             $db->query(
                 "UPDATE attendance 
-                 SET clock_out = ?,
-                     regular_hours = ?,
-                     overtime_hours = ?,
-                     early_departure_minutes = ?,
-                     status = 'clocked_out',
-                     updated_at = NOW()
-                 WHERE id = ? AND employee_id = ?",
-                [$now, $regularHours, $overtimeHours, $earlyDeparture, $attendanceId, $employeeId]
+                SET clock_out = NOW(),
+                    regular_hours = ?,
+                    overtime_hours = ?,
+                    early_departure_minutes = ?,
+                    status = 'clocked_out',
+                    updated_at = NOW()
+                WHERE id = ? AND employee_id = ?",
+                [$regularHours, $overtimeHours, $earlyDeparture, $attendanceId, $employeeId]
             );
 
             // Update 15-day summary with late minutes
@@ -306,13 +324,22 @@ try {
                 $message .= ' (' . $earlyDeparture . ' minutes early)';
             }
 
+            // Get clock out time for display
+            $clockOutTime = $db->query(
+                "SELECT TIME_FORMAT(clock_out, '%h:%i %p') as time FROM attendance WHERE id = ?",
+                [$attendanceId]
+            )->fetch_one();
+
+            ob_clean();
+            header('Content-Type: application/json');
             echo json_encode([
                 'success' => true,
                 'message' => $message,
                 'status' => 'clocked_out',
                 'regular_hours' => $regularHours,
                 'overtime_hours' => $overtimeHours,
-                'early_departure' => $earlyDeparture
+                'early_departure' => $earlyDeparture,
+                'clock_out_time' => $clockOutTime['time'] ?? date('h:i A')
             ]);
             break;
 
@@ -324,7 +351,14 @@ try {
     if ($db->inTransaction()) {
         $db->rollBack();
     }
+
+    // Log the error
+    error_log("Attendance error: " . $e->getMessage());
+
+    // Clear buffer and send error response
+    ob_clean();
     http_response_code(400);
+    header('Content-Type: application/json');
     echo json_encode([
         'success' => false,
         'message' => $e->getMessage()
@@ -334,16 +368,24 @@ try {
     if (isset($db) && $db->inTransaction()) {
         $db->rollBack();
     }
+
+    // Log the error
+    error_log("Attendance PHP error: " . $e->getMessage());
+
+    ob_clean();
     http_response_code(500);
+    header('Content-Type: application/json');
     echo json_encode([
         'success' => false,
-        'message' => 'Server error: ' . $e->getMessage()
+        'message' => 'Server error occurred'
     ]);
 }
 
-/**
- * Update or create attendance summary for periods ending on 5th and 20th of each month
- */
+// End output buffering and flush
+ob_end_flush();
+
+
+// attendance summary for periods ending on 5th and 20th of each month
 function updateAttendanceSummary($db, $employeeId, $regularHours, $overtimeHours, $lateMinutes = 0)
 {
     $today = date('Y-m-d');
@@ -355,26 +397,36 @@ function updateAttendanceSummary($db, $employeeId, $regularHours, $overtimeHours
     if ($currentDay <= 5) {
         // Period from 21st of previous month to 5th of current month
         $periodEnd = "$currentYear-$currentMonth-05";
-        $periodStart = date('Y-m-d', strtotime('first day of previous month')) . '-21';
 
-        // Adjust for January
-        if ($currentMonth == '01') {
-            $periodStart = ($currentYear - 1) . '-12-21';
+        // Calculate period start (21st of previous month)
+        $prevMonth = $currentMonth - 1;
+        $prevYear = $currentYear;
+
+        if ($prevMonth < 1) {
+            $prevMonth = 12;
+            $prevYear = $currentYear - 1;
         }
+
+        $periodStart = "$prevYear-" . str_pad($prevMonth, 2, '0', STR_PAD_LEFT) . "-21";
+
     } elseif ($currentDay <= 20) {
         // Period from 6th to 20th of current month
         $periodStart = "$currentYear-$currentMonth-06";
         $periodEnd = "$currentYear-$currentMonth-20";
     } else {
         // Period from 21st to end of month
+        $periodStart = "$currentYear-$currentMonth-21";
+
+        // Calculate period end (5th of next month)
         $nextMonth = $currentMonth + 1;
         $nextYear = $currentYear;
+
         if ($nextMonth > 12) {
             $nextMonth = 1;
-            $nextYear++;
+            $nextYear = $currentYear + 1;
         }
+
         $periodEnd = "$nextYear-" . str_pad($nextMonth, 2, '0', STR_PAD_LEFT) . "-05";
-        $periodStart = "$currentYear-$currentMonth-21";
     }
 
     if (!isset($periodStart) || !isset($periodEnd)) {
@@ -382,11 +434,14 @@ function updateAttendanceSummary($db, $employeeId, $regularHours, $overtimeHours
         return;
     }
 
+    // Log the period being used for debugging
+    error_log("Period for date $today: $periodStart to $periodEnd");
+
     // Check if summary exists for this period
     $summary = $db->query(
         "SELECT id, total_regular_hours, total_overtime_hours, total_late_minutes 
-         FROM attendance_summary 
-         WHERE employee_id = ? AND period_start = ? AND period_end = ?",
+        FROM attendance_summary 
+        WHERE employee_id = ? AND period_start = ? AND period_end = ?",
         [$employeeId, $periodStart, $periodEnd]
     )->fetch_one();
 
@@ -394,11 +449,11 @@ function updateAttendanceSummary($db, $employeeId, $regularHours, $overtimeHours
         // Update existing summary
         $db->query(
             "UPDATE attendance_summary 
-             SET total_regular_hours = total_regular_hours + ?,
-                 total_overtime_hours = total_overtime_hours + ?,
-                 total_late_minutes = total_late_minutes + ?,
-                 updated_at = NOW()
-             WHERE id = ?",
+            SET total_regular_hours = total_regular_hours + ?,
+                total_overtime_hours = total_overtime_hours + ?,
+                total_late_minutes = total_late_minutes + ?,
+                updated_at = NOW()
+            WHERE id = ?",
             [$regularHours, $overtimeHours, $lateMinutes, $summary['id']]
         );
         error_log("Updated summary ID {$summary['id']}: +{$regularHours} reg, +{$overtimeHours} OT, +{$lateMinutes} late");
@@ -406,8 +461,8 @@ function updateAttendanceSummary($db, $employeeId, $regularHours, $overtimeHours
         // Create new summary
         $db->query(
             "INSERT INTO attendance_summary 
-             (employee_id, period_start, period_end, total_regular_hours, total_overtime_hours, total_late_minutes, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())",
+            (employee_id, period_start, period_end, total_regular_hours, total_overtime_hours, total_late_minutes, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())",
             [$employeeId, $periodStart, $periodEnd, $regularHours, $overtimeHours, $lateMinutes]
         );
         $newId = $db->lastInsertId();

@@ -13,8 +13,11 @@ $position = trim($_POST['position'] ?? '');
 $experience = trim($_POST['experience'] ?? '');
 $education = trim($_POST['education'] ?? '');
 $skills = trim($_POST['skills'] ?? '');
+$gender = trim($_POST['gender'] ?? '');
+$age = trim($_POST['age'] ?? '');
 $coverNote = trim($_POST['cover_note'] ?? '');
 $resumePath = trim($_POST['resume_url'] ?? null);
+
 
 $errors = [];
 
@@ -49,18 +52,15 @@ if ($existing && $existing['count'] > 0) {
     exit;
 }
 
-$department = 'Management';
-$job = $db->query("SELECT department FROM job_postings WHERE position = ?", [$position])->fetch_one();
-if ($job && !empty($job['department'])) {
-    $department = $job['department'];
-}
+$departments = $db->query("SELECT department FROM job_postings WHERE position = ?", [$position])->fetch_one();
+$department = $departments['department'];
 
 try {
     $db->query("
         INSERT INTO applicants 
-        (full_name, email, phone, position, department, experience, education, skills, resume_path, cover_note)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ", [$fullName, $email, $phone, $position, $department, $experience, $education, $skills, $resumePath, $coverNote]);
+        (full_name, email, phone, position, department, experience, education, skills, resume_path, cover_note, age, gender)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?)
+    ", [$fullName, $email, $phone, $position, $department, $experience, $education, $skills, $resumePath, $coverNote, $age, $gender]);
 
     $_SESSION['success'] = ["Application submitted successfully!"];
     header('Location: /jobPosting#applySection');
