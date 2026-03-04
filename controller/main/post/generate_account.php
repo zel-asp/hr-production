@@ -5,8 +5,7 @@ use Core\Database;
 $config = require base_path('config/config.php');
 $db = new Database($config['database']);
 
-$_SESSION['success'] ??= [];
-$_SESSION['error'] ??= [];
+
 
 // Only allow POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['applicant_id'])) {
