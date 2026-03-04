@@ -5,3 +5,4 @@
 5. Role base authentication
 6. if session_token not set display unauthorize-> login oage
 7. if session_token in db and session are != -> redirect to login page
+8. index.php to public folder to avoid accessing private folder from root that contains important data 

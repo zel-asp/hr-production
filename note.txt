@@ -10,3 +10,7 @@ Decimal Hours	Minutes
 0.08	4.8 min (4 min 48 sec)
 0.09	5.4 min (5 min 24 sec)
 0.10	6.0 min (6 min)
+
+Average hourly rate = (100 + 150 + 200) ÷ 3 = ₱150/hour
+Total hours = 100 + 50 + 30 = 180 hours
+Projected Payout = ₱150 × 180 = ₱27,000
