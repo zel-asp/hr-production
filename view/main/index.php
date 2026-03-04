@@ -237,8 +237,6 @@
         <!-- Enroll Benefit Modal -->
         <?php require base_path('view/main/modals/enrollBenefit.php'); ?>
 
-        <?php require base_path('view/main/modals/sucessor.php'); ?>
-
         <!-- CORE HUMAN CAPITAL -->
         <?php require base_path('view/main/modals/viewEmployeeDetails.php'); ?>
 

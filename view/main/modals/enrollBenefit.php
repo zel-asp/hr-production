@@ -61,11 +61,13 @@
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-sm font-medium mb-1">Effective Date</label>
-                    <input type="date" class="profile-input w-full p-2 border rounded" name="effective_date" required>
+                    <input type="date" class="profile-input w-full p-2 border rounded" name="effective_date"
+                        min="<?= date('Y-m-d') ?>" required>
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-1">Expiry Date</label>
-                    <input type="date" class="profile-input w-full p-2 border rounded" name="expiry_date">
+                    <input type="date" class="profile-input w-full p-2 border rounded" min="<?= date('Y-m-d') ?>"
+                        name="expiry_date">
                 </div>
             </div>
 

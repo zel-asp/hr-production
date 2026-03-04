@@ -18,7 +18,7 @@
             </div>
             <div>
                 <label class="block text-sm font-medium mb-1">Date</label>
-                <input type="date" class="profile-input w-full p-2 border rounded">
+                <input type="date" class="profile-input w-full p-2 border rounded" min="<?= date('Y-m-d') ?>">
             </div>
             <div class="grid grid-cols-2 gap-3">
                 <div>
