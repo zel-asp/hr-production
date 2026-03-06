@@ -23,6 +23,7 @@ TASK: left behind
 21. compensation review note btn
 22. update in viewEmployeeDetails - already have contoller (updateEmployeeInfo)
 23. add shift and hourly rate
+24. payroll review, process 
 
 TASK: EACH DAY MUST DO FUNCTIONS FOR EACH SECTION
 day1
@@ -77,4 +78,17 @@ day 11
 
 day12
 1. host
+
+
+
+
+
+
+
+
+
+
+
+
+
 

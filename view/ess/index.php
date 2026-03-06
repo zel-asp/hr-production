@@ -7,36 +7,6 @@
         <title>hr · flow · tasks </title>
         <link rel="stylesheet" href="/assets/css/output.css">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-        <style>
-            /* Mobile menu transition */
-            .sidebar-transition {
-                transition: transform 0.3s ease-in-out;
-            }
-
-            @media (max-width: 1023px) {
-                .sidebar-mobile {
-                    transform: translateX(-100%);
-                    position: fixed;
-                    z-index: 50;
-                }
-
-                .sidebar-mobile.open {
-                    transform: translateX(0);
-                }
-
-                .overlay {
-                    display: none;
-                    position: fixed;
-                    inset: 0;
-                    background-color: rgba(0, 0, 0, 0.5);
-                    z-index: 40;
-                }
-
-                .overlay.open {
-                    display: block;
-                }
-            }
-        </style>
     </head>
 
     <body class="antialiased text-gray-700 bg-gray-100">
@@ -127,10 +97,34 @@
                                 class="fa-solid fa-list-check w-5 <?= $currentTab == 'tasks' ? 'text-gray-900' : 'text-gray-400' ?>"></i>
                             <span>My Tasks</span>
                             <?php if (($taskStats['ongoing_count'] ?? 0) > 0): ?>
-                                <span
-                                    class="ml-auto bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded-full"><?= $taskStats['ongoing_count'] ?></span>
+                                <span class="ml-auto bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                                    <?= $taskStats['ongoing_count'] ?>
+                                </span>
                             <?php endif; ?>
                         </a>
+
+                        <a href="?tab=sched"
+                            class="sidebar-nav-link flex items-center gap-3 px-4 py-3 text-sm rounded-lg transition-colors <?= $currentTab == 'sched' ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-600 hover:bg-gray-50' ?>">
+                            <i
+                                class="fa-solid fa-calendar w-5 <?= $currentTab == 'sched' ? 'text-gray-900' : 'text-gray-400' ?>"></i>
+                            <span>Schedule</span>
+                        </a>
+
+                        <a href="?tab=uploadFiles"
+                            class="sidebar-nav-link flex items-center gap-3 px-4 py-3 text-sm rounded-lg transition-colors <?= $currentTab == 'uploadFiles' ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-600 hover:bg-gray-50' ?>">
+                            <i
+                                class="fa-solid fa-folder w-5 <?= $currentTab == 'uploadFiles' ? 'text-gray-900' : 'text-gray-400' ?>"></i>
+                            <span>Upload Files</span>
+                        </a>
+
+                        <?php if ($employeeInfo['role'] === 'mentor'): ?>
+                            <a href="?tab=mentorship"
+                                class="sidebar-nav-link flex items-center gap-3 px-4 py-3 text-sm rounded-lg transition-colors <?= $currentTab == 'mentorship' ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-600 hover:bg-gray-50' ?>">
+                                <i
+                                    class="fa-solid fa-users w-5 <?= $currentTab == 'mentorship' ? 'text-gray-900' : 'text-gray-400' ?>"></i>
+                                <span>Mentorship</span>
+                            </a>
+                        <?php endif; ?>
 
                         <a href="?tab=announcements"
                             class="sidebar-nav-link flex items-center gap-3 px-4 py-3 text-sm rounded-lg transition-colors <?= $currentTab == 'announcements' ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-600 hover:bg-gray-50' ?>">
@@ -139,6 +133,7 @@
                             <span>Announcements</span>
                             <span class="ml-auto bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">2</span>
                         </a>
+
 
                         <a href="?tab=claims"
                             class="sidebar-nav-link flex items-center gap-3 px-4 py-3 text-sm rounded-lg transition-colors <?= $currentTab == 'claims' ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-600 hover:bg-gray-50' ?>">
@@ -800,14 +795,23 @@
                         <?php require base_path('view/ess/section/allTask.php'); ?>
 
 
+                    <?php elseif ($currentTab == 'sched'): ?>
+                        <?php require base_path('view/ess/section/schedule.php'); ?>
+
                     <?php elseif ($currentTab == 'announcements'): ?>
                         <div class="bg-white border border-gray-200 rounded-md p-5 shadow-sm">
                             <h2 class="text-lg font-semibold text-gray-800 mb-4">Announcements</h2>
-                            <p class="text-gray-500">wakHDKSFBALSFALSKFLSfL</p>
+                            <p class="text-gray-500"></p>
                         </div>
 
                     <?php elseif ($currentTab == 'claims'): ?>
                         <?php require base_path('view/ess/section/claims.php'); ?>
+
+                    <?php elseif ($currentTab == 'mentorship'): ?>
+                        <?php require base_path('view/ess/section/mentorship.php'); ?>
+
+                    <?php elseif ($currentTab == 'uploadFiles'): ?>
+                        <?php require base_path('view/ess/section/uploadFiles.php'); ?>
 
 
                     <?php elseif ($currentTab == 'profile'): ?>
@@ -831,7 +835,7 @@
                 elapsedSeconds: <?= $elapsedSeconds ?>,
                 csrfToken: '<?= $_SESSION['csrf_token'] ?>',
                 <?php if ($currentAttendance && isset($currentAttendance['clock_in'])): ?>
-                    shiftStartTime: '<?= $currentAttendance['clock_in'] ?>'
+                                                                            shiftStartTime: '<?= $currentAttendance['clock_in'] ?>'
                 <?php endif; ?>
             };
         </script>
@@ -839,6 +843,7 @@
         <script src="/assets/js/timeInOut.js"></script>
         <script src="/assets/js/ess.js"></script>
         <script type="module" src="/assets/js/claimsUpload.js"></script>
+        <script type="module" src="/assets/js/files.js"></script>
     </body>
 
 </html>

@@ -242,31 +242,6 @@
             <?php endif; ?>
         </div>
     </div>
-
-    <!-- Payroll Actions -->
-    <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3">
-        <button onclick="generatePayslips()"
-            class="p-4 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors duration-200 text-left flex items-start gap-3">
-            <div class="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center shrink-0">
-                <i class="fas fa-file-invoice text-gray-600"></i>
-            </div>
-            <div>
-                <p class="text-sm font-medium text-gray-800">Generate Payslips</p>
-                <p class="text-xs text-gray-500 mt-1">PDF format for all processed employees</p>
-            </div>
-        </button>
-
-        <button onclick="viewPayrollHistory()"
-            class="p-4 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors duration-200 text-left flex items-start gap-3">
-            <div class="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center shrink-0">
-                <i class="fas fa-history text-gray-600"></i>
-            </div>
-            <div>
-                <p class="text-sm font-medium text-gray-800">Payroll History</p>
-                <p class="text-xs text-gray-500 mt-1">View previous payroll runs</p>
-            </div>
-        </button>
-    </div>
 </div>
 
 <script>

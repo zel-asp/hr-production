@@ -56,6 +56,8 @@
                                 Date</th>
                             <th class="text-left py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Onboarding Status</th>
+                            <th class="text-left py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -83,6 +85,9 @@
                                             class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium <?= $badgeClass ?>">
                                             <?= $onboardingStatus ?>
                                         </span>
+                                    </td>
+                                    <td class="py-3">
+                                        
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

@@ -204,9 +204,7 @@
                                                     class="inline-flex items-center gap-1 text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded-full border border-purple-200">
                                                     <i class="fas fa-clock text-xs"></i> On PIP
                                                 </span>
-                                                <button
-                                                    class="text-sm text-gray-600 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition-colors duration-200 flex items-center gap-1"
-                                                    onclick="openModal('pipModal_<?= $eval['employee_id'] ?>')">
+                                                <button class="btn-primary" onclick="openModal('pipModal_<?= $eval['employee_id'] ?>')">
                                                     <i class="fas fa-edit text-xs"></i>
                                                     Update PIP
                                                 </button>

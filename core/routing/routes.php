@@ -63,3 +63,15 @@ $router->patch('/update-employee', 'controller/main/update/updateEmployeeInfo.ph
 //Claims
 $router->post('/submit-claims', 'controller/ess/post/submitClaims.php');
 
+//schecdule
+$router->post('/upload-attendance', 'controller/main/post/schedule.php');
+$router->post('/request-swap-schedule', 'controller/ess/post/swapRequest.php');
+$router->get('/download-upload', 'controller/main/get/download-upload.php');
+$router->patch('/approve-swap-request', 'controller/main/update/approveSwap.php');
+$router->patch('/reject-swap-request', 'controller/main/update/rejectSwap.php');
+
+//social recognition
+$router->post('/assign-mentor', 'controller/main/post/assignMentor.php');
+$router->post('/give-recognition', 'controller/main/post/giveRecognition.php');
+$router->post('/mentor-rating', 'controller/ess/post/mentorRating.php');
+

@@ -245,7 +245,7 @@
                                 </div>
                                 <?php if (!empty($benefit['coverage_amount'])): ?>
                                     <span class="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded">
-                                        $<?= number_format($benefit['coverage_amount'], 0) ?>
+                                        ₱<?= number_format($benefit['coverage_amount'], 0) ?>
                                     </span>
                                 <?php endif; ?>
                             </div>

@@ -4,7 +4,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-        <title>Hotel & Restaurant HR Management</title>
+        <title>Hotel & Restaurant HR </title>
         <link rel="stylesheet" href="/assets/css/output.css">
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -42,11 +42,11 @@
                     <div class="sidebar-category">Human Resource 1</div>
                     <div class="side-tab active" data-tab="recruitment">
                         <i class="fas fa-bullhorn"></i>
-                        Recruitment Management
+                        Recruitment
                     </div>
                     <div class="side-tab" data-tab="applicant">
                         <i class="fas fa-users"></i>
-                        Applicant Management
+                        Applicant
                     </div>
                     <div class="side-tab" data-tab="onboarding">
                         <i class="fas fa-rocket"></i>
@@ -54,22 +54,26 @@
                     </div>
                     <div class="side-tab" data-tab="performance">
                         <i class="fas fa-chart-line"></i>
-                        Performance Management
+                        Performance
+                    </div>
+                    <div class="side-tab" data-tab="recognition">
+                        <i class="fas fa-star"></i>
+                        Social Recognition
                     </div>
 
                     <!-- PERFORMANCE & DEVELOPMENT Section -->
                     <div class="sidebar-category">Human Resource 2</div>
                     <div class="side-tab" data-tab="competency">
                         <i class="fas fa-clipboard-check"></i>
-                        Competency Management
+                        Competency
                     </div>
                     <div class="side-tab" data-tab="learning">
                         <i class="fas fa-graduation-cap"></i>
-                        Learning Management
+                        Learning
                     </div>
                     <div class="side-tab" data-tab="training">
                         <i class="fas fa-chalkboard-teacher"></i>
-                        Training Management
+                        Training
                     </div>
                     <div class="side-tab" data-tab="succession">
                         <i class="fas fa-sitemap"></i>
@@ -84,15 +88,15 @@
                     </div>
                     <div class="side-tab" data-tab="shift">
                         <i class="fas fa-calendar-alt"></i>
-                        Shift and Schedule Management
+                        Shift and Schedule
                     </div>
                     <div class="side-tab" data-tab="timesheet">
                         <i class="fas fa-table"></i>
-                        Timesheet Management
+                        Timesheet
                     </div>
                     <div class="side-tab" data-tab="leave">
                         <i class="fas fa-umbrella-beach"></i>
-                        Leave Management
+                        Leave
                     </div>
                     <div class="side-tab" data-tab="claims">
                         <i class="fas fa-file-invoice"></i>
@@ -103,11 +107,11 @@
                     <div class="sidebar-category">Human Resource 4</div>
                     <div class="side-tab" data-tab="hcm">
                         <i class="fas fa-database"></i>
-                        Core Human Capital Management
+                        Core Human Capital
                     </div>
                     <div class="side-tab" data-tab="payroll">
                         <i class="fas fa-calculator"></i>
-                        Payroll Management
+                        Payroll
                     </div>
                     <div class="side-tab" data-tab="compensation">
                         <i class="fas fa-coins"></i>
@@ -126,25 +130,27 @@
 
             <!-- Main Content Area  -->
             <div class="flex-1 p-8 main-content-offset" id="mainContent">
-                <!--  RECRUITMENT MANAGEMENT  -->
+                <!--  RECRUITMENT   -->
                 <?php require base_path('view/main/sections/recruitment.php'); ?>
 
-                <!--  APPLICANT MANAGEMENT  -->
+                <!--  APPLICANT   -->
                 <?php require base_path('view/main/sections/applicant.php'); ?>
 
                 <!--  NEW HIRE ONBOARDING  -->
                 <?php require base_path('view/main/sections/onboarding.php'); ?>
 
-                <!--  PERFORMANCE MANAGEMENT  -->
+                <!--  PERFORMANCE   -->
                 <?php require base_path('view/main/sections/performance.php'); ?>
 
-                <!--  COMPETENCY MANAGEMENT  -->
+                <?php require base_path('view/main/sections/recognition.php'); ?>
+
+                <!--  COMPETENCY   -->
                 <?php require base_path('view/main/sections/competency.php'); ?>
 
-                <!--  LEARNING MANAGEMENT  -->
+                <!--  LEARNING   -->
                 <?php require base_path('view/main/sections/learning.php'); ?>
 
-                <!--  TRAINING MANAGEMENT  -->
+                <!--  TRAINING   -->
                 <?php require base_path('view/main/sections/training.php'); ?>
 
                 <!--  SUCCESSION PLANNING  -->
@@ -153,22 +159,22 @@
                 <!--  TIME AND ATTENDANCE  -->
                 <?php require base_path('view/main/sections/attendance.php'); ?>
 
-                <!--  SHIFT AND SCHEDULE MANAGEMENT  -->
+                <!--  SHIFT AND SCHEDULE   -->
                 <?php require base_path('view/main/sections/schedule.php'); ?>
 
-                <!--  TIMESHEET MANAGEMENT  -->
+                <!--  TIMESHEET   -->
                 <?php require base_path('view/main/sections/timesheet.php'); ?>
 
-                <!--  LEAVE MANAGEMENT  -->
+                <!--  LEAVE   -->
                 <?php require base_path('view/main/sections/leave.php'); ?>
 
                 <!--  CLAIMS AND REIMBURSEMENT  -->
                 <?php require base_path('view/main/sections/claims.php'); ?>
 
-                <!--  CORE HUMAN CAPITAL MANAGEMENT  -->
+                <!--  CORE HUMAN CAPITAL   -->
                 <?php require base_path('view/main/sections/coreHuman.php'); ?>
 
-                <!--  PAYROLL MANAGEMENT  -->
+                <!--  PAYROLL   -->
                 <?php require base_path('view/main/sections/payroll.php'); ?>
 
                 <!--  COMPENSATION PLANNING  -->

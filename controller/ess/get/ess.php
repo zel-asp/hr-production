@@ -731,6 +731,631 @@ function getIconBgClass($category)
 }
 $claimsActiveTab = isset($_GET['panel']) && $_GET['panel'] == 'history' ? 'history' : 'new';
 
+
+// ============================================
+// SHIFT & SCHEDULE MANAGEMENT SECTION
+// ============================================
+
+// Get current date info
+$shiftCurrentDate = date('Y-m-d');
+$shiftCurrentWeek = date('W');
+$shiftCurrentYear = date('Y');
+$shiftCurrentDay = date('w'); // 0 (Sunday) to 6 (Saturday)
+
+// Calculate week dates (Monday to Sunday)
+$shiftWeekStart = date('Y-m-d', strtotime('monday this week'));
+$shiftWeekEnd = date('Y-m-d', strtotime('sunday this week'));
+$shiftWeekLabel = date('M j', strtotime($shiftWeekStart)) . ' - ' . date('M j, Y', strtotime($shiftWeekEnd));
+$shiftWeekNumber = $shiftCurrentWeek;
+
+// Get shifts from database
+try {
+    $shiftAllShifts = $db->query("
+        SELECT id, shift_name, shift_code, start_time, end_time, grace_period_minutes
+        FROM shifts
+        ORDER BY start_time ASC
+    ")->find();
+} catch (\Throwable $th) {
+    $shiftAllShifts = [
+        ['id' => 1, 'shift_name' => 'Morning Shift', 'shift_code' => 'MORNING', 'start_time' => '07:00:00', 'end_time' => '15:00:00'],
+        ['id' => 2, 'shift_name' => 'Afternoon Shift', 'shift_code' => 'AFTERNOON', 'start_time' => '15:00:00', 'end_time' => '23:00:00'],
+        ['id' => 3, 'shift_name' => 'Graveyard Shift', 'shift_code' => 'GRAVEYARD', 'start_time' => '23:00:00', 'end_time' => '07:00:00']
+    ];
+    error_log("Error fetching shifts: " . $th->getMessage());
+}
+
+// Get employee's current shift
+try {
+    $shiftEmployeeShift = $db->query("
+        SELECT s.* 
+        FROM employees e
+        LEFT JOIN shifts s ON e.shift_id = s.id
+        WHERE e.id = ?
+    ", [$employeeId])->fetch_one();
+} catch (\Throwable $th) {
+    $shiftEmployeeShift = null;
+    error_log("Error fetching employee shift: " . $th->getMessage());
+}
+
+// Get this week's schedule
+$shiftWeekSchedule = [];
+$shiftDays = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+
+for ($i = 0; $i < 7; $i++) {
+    $date = date('Y-m-d', strtotime("monday this week +{$i} days"));
+    $dayName = $shiftDays[$i];
+
+    // Determine shift for this day (simplified - you would have a schedule table in production)
+    // For demo, assign shifts based on day
+    if ($i < 3) { // Mon-Wed
+        $shift = $shiftAllShifts[0] ?? null; // Morning
+        $shiftType = 'morning';
+        $bgColor = 'bg-blue-50';
+        $borderColor = 'border-blue-100';
+        $textColor = 'text-blue-700';
+        $badgeColor = 'bg-blue-200 text-blue-800';
+    } elseif ($i < 5) { // Thu-Fri
+        $shift = $shiftAllShifts[1] ?? null; // Afternoon
+        $shiftType = 'afternoon';
+        $bgColor = 'bg-amber-50';
+        $borderColor = 'border-amber-100';
+        $textColor = 'text-amber-700';
+        $badgeColor = 'bg-amber-200 text-amber-800';
+    } else { // Sat-Sun
+        $shift = null; // Day off
+        $shiftType = 'off';
+        $bgColor = 'bg-gray-50';
+        $borderColor = 'border-gray-200';
+        $textColor = 'text-gray-400';
+        $badgeColor = 'bg-gray-200 text-gray-600';
+    }
+
+    $shiftWeekSchedule[] = [
+        'date' => $date,
+        'day' => $dayName,
+        'day_index' => $i,
+        'shift' => $shift,
+        'shift_type' => $shiftType,
+        'bg_color' => $bgColor,
+        'border_color' => $borderColor,
+        'text_color' => $textColor,
+        'badge_color' => $badgeColor,
+        'is_off' => ($shiftType == 'off')
+    ];
+}
+
+// Get upcoming shifts (next 7 days from tomorrow)
+$shiftUpcoming = [];
+for ($i = 1; $i <= 7; $i++) {
+    $date = date('Y-m-d', strtotime("+{$i} days"));
+    $dayName = date('l', strtotime($date));
+    $displayDate = ($i == 1) ? 'Tomorrow' : date('M j, Y', strtotime($date));
+
+    // Determine shift (simplified)
+    $dayOfWeek = date('w', strtotime($date));
+    if ($dayOfWeek >= 1 && $dayOfWeek <= 3) { // Mon-Wed
+        $shift = $shiftAllShifts[0] ?? null;
+        $shiftType = 'Morning';
+        $icon = 'fa-sun';
+        $iconBg = 'bg-blue-100';
+        $iconColor = 'text-blue-600';
+        $badgeBg = 'bg-blue-50';
+        $badgeText = 'text-blue-600';
+    } elseif ($dayOfWeek >= 4 && $dayOfWeek <= 5) { // Thu-Fri
+        $shift = $shiftAllShifts[1] ?? null;
+        $shiftType = 'Afternoon';
+        $icon = 'fa-moon';
+        $iconBg = 'bg-amber-100';
+        $iconColor = 'text-amber-600';
+        $badgeBg = 'bg-amber-50';
+        $badgeText = 'text-amber-600';
+    } elseif ($dayOfWeek == 6) { // Sat
+        $shift = $shiftAllShifts[2] ?? null;
+        $shiftType = 'Graveyard';
+        $icon = 'fa-moon-stars';
+        $iconBg = 'bg-purple-100';
+        $iconColor = 'text-purple-600';
+        $badgeBg = 'bg-purple-50';
+        $badgeText = 'text-purple-600';
+    } else { // Sun
+        $shift = null;
+        $shiftType = 'Day Off';
+        $icon = 'fa-bed';
+        $iconBg = 'bg-gray-100';
+        $iconColor = 'text-gray-600';
+        $badgeBg = 'bg-gray-100';
+        $badgeText = 'text-gray-600';
+    }
+
+    if ($shift) {
+        $startTime = date('g:i A', strtotime($shift['start_time']));
+        $endTime = date('g:i A', strtotime($shift['end_time']));
+        $timeDisplay = "$startTime - $endTime";
+    } else {
+        $timeDisplay = 'Day Off';
+    }
+
+    $shiftUpcoming[] = [
+        'date' => $date,
+        'display_date' => $displayDate,
+        'shift_type' => $shiftType,
+        'time_display' => $timeDisplay,
+        'icon' => $icon,
+        'icon_bg' => $iconBg,
+        'icon_color' => $iconColor,
+        'badge_bg' => $badgeBg,
+        'badge_text' => $badgeText,
+        'has_shift' => ($shift !== null)
+    ];
+}
+
+// Get employees for swap dropdown
+try {
+    $shiftEmployees = $db->query("
+        SELECT id, full_name, 
+               CASE 
+                   WHEN shift_id = 1 THEN 'Morning Shift'
+                   WHEN shift_id = 2 THEN 'Afternoon Shift'
+                   WHEN shift_id = 3 THEN 'Graveyard Shift'
+                   ELSE 'No Shift'
+               END as current_shift
+        FROM employees
+        WHERE id != ? AND status IN ('Active', 'Regular', 'Probationary')
+        ORDER BY full_name
+        LIMIT 10
+    ", [$employeeId])->find();
+} catch (\Throwable $th) {
+    $shiftEmployees = [];
+    error_log("Error fetching employees: " . $th->getMessage());
+}
+
+// Get recent shift requests
+try {
+    $shiftRecentRequests = $db->query("
+        SELECT 
+            id,
+            DATE_FORMAT(created_at, '%b %e, %Y') as request_date,
+            'Swap Shift' as request_type,
+            'Morning' as from_shift,
+            'Afternoon' as to_shift,
+            reason,
+            status,
+            CASE 
+                WHEN status = 'Approved' THEN 'bg-green-50 text-green-600'
+                WHEN status = 'Pending' THEN 'bg-yellow-50 text-yellow-600'
+                WHEN status = 'Rejected' THEN 'bg-gray-100 text-gray-600'
+                ELSE 'bg-gray-50 text-gray-600'
+            END as status_class
+        FROM shift_requests
+        WHERE employee_id = ?
+        ORDER BY created_at DESC
+        LIMIT 5
+    ", [$employeeId])->find();
+} catch (\Throwable $th) {
+    // If table doesn't exist, provide sample data
+    $shiftRecentRequests = [
+        [
+            'request_date' => 'Mar 15, 2025',
+            'request_type' => 'Swap Shift',
+            'from_shift' => 'Morning',
+            'to_shift' => 'Afternoon',
+            'reason' => 'Family commitment',
+            'status' => 'Approved',
+            'status_class' => 'bg-green-50 text-green-600'
+        ],
+        [
+            'request_date' => 'Mar 10, 2025',
+            'request_type' => 'Time Off',
+            'from_shift' => 'Mar 25',
+            'to_shift' => 'Mar 27',
+            'reason' => 'Vacation',
+            'status' => 'Pending',
+            'status_class' => 'bg-yellow-50 text-yellow-600'
+        ],
+        [
+            'request_date' => 'Mar 8, 2025',
+            'request_type' => 'Change Shift',
+            'from_shift' => 'Graveyard',
+            'to_shift' => 'Morning',
+            'reason' => 'Health reasons',
+            'status' => 'Rejected',
+            'status_class' => 'bg-gray-100 text-gray-600'
+        ]
+    ];
+    error_log("Error fetching shift requests: " . $th->getMessage());
+}
+
+// Format time function
+function formatShiftTime($time)
+{
+    return date('g:i A', strtotime($time));
+}
+
+//schedule
+// ============================================
+// SHIFT SWAP MANAGEMENT SECTION
+// ============================================
+
+// Get employees for swap dropdown (EXCLUDING current employee)
+try {
+    $shiftEmployees = $db->query("
+        SELECT 
+            e.id, 
+            e.full_name,
+            s.id as shift_id,
+            s.shift_name as current_shift,
+            CONCAT(s.shift_name, ' (', DATE_FORMAT(s.start_time, '%h:%i %p'), ' - ', DATE_FORMAT(s.end_time, '%h:%i %p'), ')') as shift_display
+        FROM employees e
+        LEFT JOIN shifts s ON e.shift_id = s.id
+        WHERE e.id != ? 
+            AND e.status IN ('Active', 'Regular', 'Probationary', 'Onboarding')
+        ORDER BY e.full_name
+    ", [$employeeId])->find();
+} catch (\Throwable $th) {
+    $shiftEmployees = [];
+    error_log("Error fetching employees for swap: " . $th->getMessage());
+}
+
+// Get swap requests SENT by this employee
+try {
+    $sentSwapRequests = $db->query("
+        SELECT 
+            ssr.*,
+            e.full_name as swap_with_name,
+            s.shift_name as requester_shift_name,
+            es.shift_name as swap_with_shift_name,
+            DATE_FORMAT(ssr.swap_date, '%M %e, %Y') as formatted_swap_date,
+            DATE_FORMAT(ssr.created_at, '%M %e, %Y') as formatted_created_date,
+            CASE 
+                WHEN ssr.status = 'Pending' THEN 'bg-yellow-50 text-yellow-600'
+                WHEN ssr.status = 'Approved' THEN 'bg-green-50 text-green-600'
+                WHEN ssr.status = 'Rejected' THEN 'bg-red-50 text-red-600'
+                WHEN ssr.status = 'Cancelled' THEN 'bg-gray-50 text-gray-600'
+            END as status_class
+        FROM shift_swap_requests ssr
+        LEFT JOIN employees e ON ssr.swap_with_employee_id = e.id
+        LEFT JOIN shifts s ON ssr.requester_shift_id = s.id
+        LEFT JOIN shifts es ON ssr.swap_with_shift_id = es.id
+        WHERE ssr.requester_employee_id = ?
+        ORDER BY ssr.created_at DESC
+        LIMIT 5
+    ", [$employeeId])->find();
+} catch (\Throwable $th) {
+    $sentSwapRequests = [];
+    error_log("Error fetching sent swap requests: " . $th->getMessage());
+}
+
+// Get swap requests RECEIVED by this employee (for approval)
+try {
+    $receivedSwapRequests = $db->query("
+        SELECT 
+            ssr.*,
+            e.full_name as requester_name,
+            s.shift_name as requester_shift_name,
+            es.shift_name as swap_with_shift_name,
+            DATE_FORMAT(ssr.swap_date, '%M %e, %Y') as formatted_swap_date,
+            DATE_FORMAT(ssr.created_at, '%M %e, %Y') as formatted_created_date
+        FROM shift_swap_requests ssr
+        LEFT JOIN employees e ON ssr.requester_employee_id = e.id
+        LEFT JOIN shifts s ON ssr.requester_shift_id = s.id
+        LEFT JOIN shifts es ON ssr.swap_with_shift_id = es.id
+        WHERE ssr.swap_with_employee_id = ? AND ssr.status = 'Pending'
+        ORDER BY ssr.created_at DESC
+    ", [$employeeId])->find();
+} catch (\Throwable $th) {
+    $receivedSwapRequests = [];
+    error_log("Error fetching received swap requests: " . $th->getMessage());
+}
+
+
+// ============================================
+// SCHEDULE MANAGEMENT SECTION
+// ============================================
+
+// Get current week
+$scheduleCurrentDate = date('Y-m-d');
+$scheduleWeekOffset = isset($_GET['schedule_week']) ? (int) $_GET['schedule_week'] : 0;
+
+// Calculate week start (Monday) and end (Sunday) based on offset
+$scheduleWeekStart = date('Y-m-d', strtotime("monday this week " . ($scheduleWeekOffset > 0 ? "+$scheduleWeekOffset weeks" : ($scheduleWeekOffset < 0 ? "$scheduleWeekOffset weeks" : ""))));
+$scheduleWeekEnd = date('Y-m-d', strtotime("sunday this week " . ($scheduleWeekOffset > 0 ? "+$scheduleWeekOffset weeks" : ($scheduleWeekOffset < 0 ? "$scheduleWeekOffset weeks" : ""))));
+
+$scheduleWeekNumber = date('W', strtotime($scheduleWeekStart));
+$scheduleWeekYear = date('Y', strtotime($scheduleWeekStart));
+$scheduleWeekLabel = date('M j', strtotime($scheduleWeekStart)) . ' - ' . date('M j, Y', strtotime($scheduleWeekEnd));
+
+// Get all shifts for reference
+try {
+    $scheduleAllShifts = $db->query("
+        SELECT id, shift_name, shift_code, start_time, end_time
+        FROM shifts
+        ORDER BY start_time ASC
+    ")->find();
+
+    // Create a map for easy lookup
+    $scheduleShiftMap = [];
+    foreach ($scheduleAllShifts as $shift) {
+        $scheduleShiftMap[$shift['id']] = $shift;
+    }
+} catch (\Throwable $th) {
+    $scheduleAllShifts = [];
+    $scheduleShiftMap = [];
+    error_log("Error fetching shifts: " . $th->getMessage());
+}
+
+// Get employee's schedule for the week
+try {
+    $scheduleEmployeeShifts = $db->query("
+        SELECT 
+            es.*,
+            s.shift_name,
+            s.start_time,
+            s.end_time,
+            s.shift_code,
+            DATE_FORMAT(es.schedule_date, '%a') as day_abbr,
+            DATE_FORMAT(es.schedule_date, '%b %e') as formatted_date,
+            DAYOFWEEK(es.schedule_date) as day_of_week
+        FROM employee_schedules es
+        LEFT JOIN shifts s ON es.shift_id = s.id
+        WHERE es.employee_id = ? 
+        AND es.schedule_date BETWEEN ? AND ?
+        AND es.status = 'scheduled'
+        ORDER BY es.schedule_date ASC
+    ", [$employeeId, $scheduleWeekStart, $scheduleWeekEnd])->find();
+
+    // Create a map by date for easy access
+    $scheduleByDate = [];
+    foreach ($scheduleEmployeeShifts as $shift) {
+        $scheduleByDate[$shift['schedule_date']] = $shift;
+    }
+} catch (\Throwable $th) {
+    $scheduleEmployeeShifts = [];
+    $scheduleByDate = [];
+    error_log("Error fetching employee schedule: " . $th->getMessage());
+}
+
+// Generate the week days (Monday to Sunday)
+$scheduleWeekDays = [];
+$scheduleHasAnyShift = false;
+
+for ($i = 0; $i < 7; $i++) {
+    $date = date('Y-m-d', strtotime($scheduleWeekStart . " +$i days"));
+    $dayName = date('l', strtotime($date));
+    $dayAbbr = date('D', strtotime($date));
+    $formattedDate = date('M j', strtotime($date));
+
+    $shiftData = $scheduleByDate[$date] ?? null;
+
+    if ($shiftData) {
+        $scheduleHasAnyShift = true;
+    }
+
+    $scheduleWeekDays[] = [
+        'date' => $date,
+        'day_name' => $dayName,
+        'day_abbr' => $dayAbbr,
+        'formatted_date' => $formattedDate,
+        'has_shift' => !empty($shiftData),
+        'shift' => $shiftData,
+        'is_today' => ($date == date('Y-m-d')),
+        'is_past' => ($date < date('Y-m-d')),
+        'is_future' => ($date > date('Y-m-d'))
+    ];
+}
+
+// Get upcoming shifts (next 7 days from today)
+try {
+    $scheduleUpcomingShifts = $db->query("
+        SELECT 
+            es.*,
+            s.shift_name,
+            s.start_time,
+            s.end_time,
+            s.shift_code,
+            DATE_FORMAT(es.schedule_date, '%b %e, %Y') as display_date,
+            CASE 
+                WHEN es.schedule_date = CURDATE() + INTERVAL 1 DAY THEN 'Tomorrow'
+                ELSE DATE_FORMAT(es.schedule_date, '%b %e, %Y')
+            END as display_label
+        FROM employee_schedules es
+        LEFT JOIN shifts s ON es.shift_id = s.id
+        WHERE es.employee_id = ? 
+        AND es.schedule_date > CURDATE()
+        AND es.status = 'scheduled'
+        ORDER BY es.schedule_date ASC
+        LIMIT 5
+    ", [$employeeId])->find();
+} catch (\Throwable $th) {
+    $scheduleUpcomingShifts = [];
+    error_log("Error fetching upcoming shifts: " . $th->getMessage());
+}
+
+// Format time function
+function formatScheduleTime($time)
+{
+    return $time ? date('g:i A', strtotime($time)) : '';
+}
+
+// Get shift badge color based on shift name
+function getShiftBadgeColor($shiftName)
+{
+    $shiftName = strtolower($shiftName ?? '');
+    if (strpos($shiftName, 'morning') !== false) {
+        return 'bg-blue-50 text-blue-600';
+    } elseif (strpos($shiftName, 'afternoon') !== false) {
+        return 'bg-amber-50 text-amber-600';
+    } elseif (strpos($shiftName, 'graveyard') !== false || strpos($shiftName, 'night') !== false) {
+        return 'bg-purple-50 text-purple-600';
+    } else {
+        return 'bg-gray-50 text-gray-600';
+    }
+}
+
+// Get shift dot color based on shift name
+function getShiftDotColor($shiftName)
+{
+    $shiftName = strtolower($shiftName ?? '');
+    if (strpos($shiftName, 'morning') !== false) {
+        return 'bg-blue-500';
+    } elseif (strpos($shiftName, 'afternoon') !== false) {
+        return 'bg-amber-500';
+    } elseif (strpos($shiftName, 'graveyard') !== false || strpos($shiftName, 'night') !== false) {
+        return 'bg-purple-500';
+    } else {
+        return 'bg-gray-500';
+    }
+}
+
+// Get shift icon based on shift name
+function getShiftIcon($shiftName)
+{
+    $shiftName = strtolower($shiftName ?? '');
+    if (strpos($shiftName, 'morning') !== false) {
+        return 'fa-sun';
+    } elseif (strpos($shiftName, 'afternoon') !== false) {
+        return 'fa-moon';
+    } elseif (strpos($shiftName, 'graveyard') !== false || strpos($shiftName, 'night') !== false) {
+        return 'fa-moon-stars';
+    } else {
+        return 'fa-clock';
+    }
+}
+
+// Determine if we're on current week
+$scheduleIsCurrentWeek = ($scheduleWeekOffset == 0);
+
+// ============================================
+// MY MENTEES SECTION (for mentors)
+// ============================================
+
+// Get current mentor's ID (assuming logged in user is a mentor)
+$mentorId = $employeeId; // From your session/authentication
+
+// Get mentees assigned to this mentor
+try {
+    $mentorMentees = $db->query("
+        SELECT 
+            ma.*,
+            mentee.id as mentee_id,
+            mentee.full_name as mentee_name,
+            mentee.position as mentee_position,
+            mentee.department,
+            mentee.hired_date,
+            mentee.status,
+            mentee.employee_number,
+            TIMESTAMPDIFF(MONTH, mentee.hired_date, CURDATE()) as months_employed,
+            DATE_FORMAT(ma.created_at, '%M %Y') as started_since,
+            -- Get average rating for this mentee
+            COALESCE((
+                SELECT AVG(rating) FROM mentor_ratings 
+                WHERE mentee_employee_id = mentee.id 
+                AND mentor_employee_id = ?
+            ), 0) as avg_rating,
+            -- Get latest rating comment
+            (
+                SELECT comment FROM mentor_ratings 
+                WHERE mentee_employee_id = mentee.id 
+                AND mentor_employee_id = ?
+                ORDER BY created_at DESC LIMIT 1
+            ) as latest_comment,
+            -- Count total ratings given
+            (
+                SELECT COUNT(*) FROM mentor_ratings 
+                WHERE mentee_employee_id = mentee.id 
+                AND mentor_employee_id = ?
+            ) as rating_count,
+            -- Determine status badge
+            CASE 
+                WHEN mentee.status = 'Probationary' AND TIMESTAMPDIFF(MONTH, mentee.hired_date, CURDATE()) >= 3 THEN 'Ready for Promotion'
+                WHEN mentee.status = 'Probationary' AND TIMESTAMPDIFF(MONTH, mentee.hired_date, CURDATE()) < 3 THEN 'Probationary'
+                WHEN mentee.status = 'Regular' THEN 'Regular'
+                ELSE mentee.status
+            END as status_badge,
+            CONCAT(LEFT(mentee.full_name, 1), COALESCE(RIGHT(LEFT(mentee.full_name, INSTR(mentee.full_name, ' ') + 1), 1), RIGHT(mentee.full_name, 1))) as initials,
+            CASE 
+                WHEN (SELECT AVG(rating) FROM mentor_ratings WHERE mentee_employee_id = mentee.id AND mentor_employee_id = ?) >= 4.5 THEN 'bg-gradient-to-br from-amber-400 to-amber-500'
+                WHEN (SELECT AVG(rating) FROM mentor_ratings WHERE mentee_employee_id = mentee.id AND mentor_employee_id = ?) >= 3.5 THEN 'bg-gradient-to-br from-blue-400 to-blue-500'
+                WHEN (SELECT AVG(rating) FROM mentor_ratings WHERE mentee_employee_id = mentee.id AND mentor_employee_id = ?) >= 2.5 THEN 'bg-gradient-to-br from-green-400 to-green-500'
+                ELSE 'bg-gradient-to-br from-purple-400 to-purple-500'
+            END as gradient_class
+        FROM mentor_assignments ma
+        JOIN employees mentee ON ma.mentee_employee_id = mentee.id
+        WHERE ma.mentor_employee_id = ? AND ma.status = 'Active'
+        ORDER BY mentee.full_name
+    ", [$mentorId, $mentorId, $mentorId, $mentorId, $mentorId, $mentorId, $mentorId])->find();
+} catch (\Throwable $th) {
+    $mentorMentees = [];
+    error_log("Error fetching mentees: " . $th->getMessage());
+}
+
+// Get stats
+$mentorTotalMentees = count($mentorMentees);
+$mentorRatedThisMonth = 0;
+$mentorTotalRating = 0;
+$mentorRatingCount = 0;
+
+foreach ($mentorMentees as $mentee) {
+    if ($mentee['rating_count'] > 0) {
+        $mentorRatingCount++;
+        $mentorTotalRating += $mentee['avg_rating'];
+    }
+
+    // Check if rated this month
+    $ratedThisMonth = $db->query("
+        SELECT COUNT(*) as count FROM mentor_ratings 
+        WHERE mentee_employee_id = ? AND mentor_employee_id = ?
+        AND MONTH(rating_date) = MONTH(CURDATE())
+        AND YEAR(rating_date) = YEAR(CURDATE())
+    ", [$mentee['mentee_id'], $mentorId])->fetch_one()['count'] ?? 0;
+
+    if ($ratedThisMonth > 0) {
+        $mentorRatedThisMonth++;
+    }
+}
+
+$mentorAverageRating = $mentorRatingCount > 0 ? round($mentorTotalRating / $mentorRatingCount, 1) : 0;
+
+// Get recent ratings given by this mentor
+try {
+    $mentorRecentRatings = $db->query("
+        SELECT 
+            mr.*,
+            mentee.full_name as mentee_name,
+            mentee.position,
+            DATE_FORMAT(mr.rating_date, '%b %e, %Y') as formatted_date,
+            DATE_FORMAT(mr.created_at, '%b %e, %Y') as formatted_created,
+            CONCAT(LEFT(mentee.full_name, 1), COALESCE(RIGHT(LEFT(mentee.full_name, INSTR(mentee.full_name, ' ') + 1), 1), RIGHT(mentee.full_name, 1))) as initials,
+            DATEDIFF(CURDATE(), mr.rating_date) as days_ago
+        FROM mentor_ratings mr
+        JOIN employees mentee ON mr.mentee_employee_id = mentee.id
+        WHERE mr.mentor_employee_id = ?
+        ORDER BY mr.created_at DESC
+        LIMIT 5
+    ", [$mentorId])->find();
+} catch (\Throwable $th) {
+    $mentorRecentRatings = [];
+    error_log("Error fetching recent ratings: " . $th->getMessage());
+}
+
+// Get all mentees for dropdown (for rating form)
+try {
+    $mentorMenteesDropdown = $db->query("
+        SELECT 
+            mentee.id,
+            mentee.full_name,
+            mentee.position,
+            mentee.department,
+            CONCAT(mentee.full_name, ' - ', mentee.position) as display_name
+        FROM mentor_assignments ma
+        JOIN employees mentee ON ma.mentee_employee_id = mentee.id
+        WHERE ma.mentor_employee_id = ? AND ma.status = 'Active'
+        ORDER BY mentee.full_name
+    ", [$mentorId])->find();
+} catch (\Throwable $th) {
+    $mentorMenteesDropdown = [];
+    error_log("Error fetching mentees dropdown: " . $th->getMessage());
+}
+
 // Add all variables to view
 view_path('ess', 'index', [
     'tasks' => $limitedTasks,
@@ -782,5 +1407,47 @@ view_path('ess', 'index', [
     'claimsStatusFilter' => $claimsStatusFilter,
     'claimsPeriodFilter' => $claimsPeriodFilter,
     'claimsList' => $claimsList,
-    'claimsActiveTab' => $claimsActiveTab
+    'claimsActiveTab' => $claimsActiveTab,
+
+    // SHIFT & SCHEDULE VARIABLES
+    'shiftCurrentDate' => $shiftCurrentDate,
+    'shiftCurrentWeek' => $shiftCurrentWeek,
+    'shiftWeekStart' => $shiftWeekStart,
+    'shiftWeekEnd' => $shiftWeekEnd,
+    'shiftWeekLabel' => $shiftWeekLabel,
+    'shiftWeekNumber' => $shiftWeekNumber,
+    'shiftAllShifts' => $shiftAllShifts,
+    'shiftEmployeeShift' => $shiftEmployeeShift,
+    'shiftWeekSchedule' => $shiftWeekSchedule,
+    'shiftDays' => $shiftDays,
+    'shiftUpcoming' => $shiftUpcoming,
+    'shiftEmployees' => $shiftEmployees,
+    'shiftRecentRequests' => $shiftRecentRequests,
+
+    // SCHEDULE MANAGEMENT VARIABLES
+    'scheduleCurrentDate' => $scheduleCurrentDate,
+    'scheduleWeekOffset' => $scheduleWeekOffset,
+    'scheduleWeekStart' => $scheduleWeekStart,
+    'scheduleWeekEnd' => $scheduleWeekEnd,
+    'scheduleWeekNumber' => $scheduleWeekNumber,
+    'scheduleWeekYear' => $scheduleWeekYear,
+    'scheduleWeekLabel' => $scheduleWeekLabel,
+    'scheduleWeekDays' => $scheduleWeekDays,
+    'scheduleHasAnyShift' => $scheduleHasAnyShift,
+    'scheduleIsCurrentWeek' => $scheduleIsCurrentWeek,
+    'scheduleUpcomingShifts' => $scheduleUpcomingShifts,
+    'scheduleAllShifts' => $scheduleAllShifts,
+    'scheduleShiftMap' => $scheduleShiftMap,
+    'scheduleEmployeeShifts' => $scheduleEmployeeShifts,
+    'scheduleByDate' => $scheduleByDate,
+    'receivedSwapRequests' => $receivedSwapRequests,
+    'sentSwapRequests' => $sentSwapRequests,
+
+    // MENTOR RATING VARIABLES
+    'mentorMentees' => $mentorMentees,
+    'mentorTotalMentees' => $mentorTotalMentees,
+    'mentorRatedThisMonth' => $mentorRatedThisMonth,
+    'mentorAverageRating' => $mentorAverageRating,
+    'mentorRecentRatings' => $mentorRecentRatings,
+    'mentorMenteesDropdown' => $mentorMenteesDropdown,
 ]);

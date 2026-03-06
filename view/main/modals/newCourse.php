@@ -261,16 +261,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Account Actions -->
-            <div class="border-t pt-4">
-                <div class="flex justify-end gap-2">
-                    <button class="px-4 py-2 bg-red-100 text-red-700 rounded-lg"
-                        onclick="deactivateAccount(<?= $account['applicant_id'] ?>)">
-                        <i class="fas fa-ban mr-2"></i>Deactivate
-                    </button>
-                </div>
-            </div>
         </div>
     </div>
 <?php endforeach; ?>

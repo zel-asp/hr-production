@@ -163,6 +163,7 @@
                                         class="w-full pl-8 pr-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                                 </div>
                             </div>
+
                             <div>
                                 <label class="block text-xs text-gray-500 mb-1">Employee Status</label>
                                 <select name="status"
@@ -199,6 +200,7 @@
                                     </option>
                                 </select>
                             </div>
+
                         </div>
                     </div>
 
@@ -333,9 +335,6 @@
                                 <i class="fa-solid fa-clock text-amber-600"></i>
                                 Attendance Summary
                             </h4>
-                            <button type="button" class="text-xs text-blue-600 hover:text-blue-800">
-                                <i class="fa-solid fa-calculator mr-1"></i>Recalculate
-                            </button>
                         </div>
                         <div class="bg-amber-50 p-3 rounded-lg border border-amber-200 mb-3">
                             <span class="text-xs text-amber-800">Current Period: <?= htmlspecialchars($cutoffStart ?? '') ?>

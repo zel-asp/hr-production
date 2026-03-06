@@ -65,9 +65,9 @@ try {
             $employeeNumber = 'EMP-' . str_pad($id, 3, '0', STR_PAD_LEFT);
             $db->query("
                 INSERT INTO employees 
-                    (applicant_id, employee_number, full_name, email, phone, position, department, start_date, hired_date, status, age, gender) 
+                    (applicant_id, employee_number, full_name, email, phone, position, department, start_date, hired_date, status, age, gender, resume) 
                 VALUES 
-                    (:applicant_id, :employee_number, :full_name, :email, :phone, :position, :department, :start_date, :hired_date, 'Probationary', :age, :gender)
+                    (:applicant_id, :employee_number, :full_name, :email, :phone, :position, :department, :start_date, :hired_date, 'Probationary', :age, :gender, :resume)
             ", [
                 'applicant_id' => $id,
                 'employee_number' => $employeeNumber,
@@ -80,6 +80,7 @@ try {
                 'hired_date' => $applicant['hired_date'] ?? date('Y-m-d'),
                 'age' => $applicant['age'],
                 'gender' => $applicant['gender'],
+                'resume' => $applicant['resume_path']
             ]);
         }
 

@@ -1,56 +1,6 @@
 <div class="bg-white border border-gray-200 rounded-md p-5 shadow-sm">
     <h2 class="text-lg font-semibold text-gray-800 mb-4">Claims & Reimbursement</h2>
 
-    <!-- Claims Overview Stats -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <!-- Pending Claims -->
-        <div class="bg-amber-50 border border-amber-100 rounded-lg p-4">
-            <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">Pending</span>
-                <span class="bg-amber-100 text-amber-700 p-2 rounded-lg">
-                    <i class="fa-solid fa-clock"></i>
-                </span>
-            </div>
-            <p class="text-2xl font-bold text-gray-800 mt-2">₱ 3,450.00</p>
-            <p class="text-xs text-gray-500 mt-1">2 claims awaiting approval</p>
-        </div>
-
-        <!-- Approved (Ready for Payment) -->
-        <div class="bg-green-50 border border-green-100 rounded-lg p-4">
-            <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">Approved</span>
-                <span class="bg-green-100 text-green-700 p-2 rounded-lg">
-                    <i class="fa-solid fa-circle-check"></i>
-                </span>
-            </div>
-            <p class="text-2xl font-bold text-gray-800 mt-2">₱ 2,150.00</p>
-            <p class="text-xs text-gray-500 mt-1">Ready for payout</p>
-        </div>
-
-        <!-- Paid -->
-        <div class="bg-blue-50 border border-blue-100 rounded-lg p-4">
-            <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">Paid (This Month)</span>
-                <span class="bg-blue-100 text-blue-700 p-2 rounded-lg">
-                    <i class="fa-solid fa-circle-check"></i>
-                </span>
-            </div>
-            <p class="text-2xl font-bold text-gray-800 mt-2">₱ 5,800.00</p>
-            <p class="text-xs text-gray-500 mt-1">3 claims processed</p>
-        </div>
-
-        <!-- Total Claims -->
-        <div class="bg-purple-50 border border-purple-100 rounded-lg p-4">
-            <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">Total Claims</span>
-                <span class="bg-purple-100 text-purple-700 p-2 rounded-lg">
-                    <i class="fa-solid fa-file-lines"></i>
-                </span>
-            </div>
-            <p class="text-2xl font-bold text-gray-800 mt-2">8</p>
-            <p class="text-xs text-gray-500 mt-1">All time</p>
-        </div>
-    </div>
 
     <!-- Tabs: Submit New Claim | My Claims History -->
     <div class="border-b border-gray-200 mb-6">

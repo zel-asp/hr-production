@@ -140,8 +140,7 @@
                         class="modal fixed inset-0 bg-black/50 flex items-center justify-center hidden z-50">
                         <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
                             <!-- Modal Header -->
-                            <div
-                                class="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+                            <div class="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center">
                                 <h3 class="text-lg font-semibold text-gray-800">Applicant Details</h3>
                                 <button onclick="closeModal('recruitment-applicantModal<?= $applicant['id'] ?>')"
                                     class="text-gray-400 hover:text-gray-600 text-xl font-light transition-colors duration-200">
