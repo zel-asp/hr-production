@@ -2,7 +2,7 @@
 
 use Core\Database;
 
-session_start();
+require base_path("core/middleware/adminAuth.php");
 
 $config = require base_path('config/config.php');
 $db = new Database($config['database']);
@@ -22,7 +22,8 @@ $reviewDate = $_POST['review_date'];
 $effectiveDate = $_POST['effective_date'];
 $reviewType = $_POST['review_type'];
 $notes = $_POST['finance_notes'] ?? null;
-$createdBy = $_SESSION['user']['id'] ?? null;
+$ratePerhour = $_POST['ratePerHour'] ?? null;
+$createdBy = $_SESSION['admin']['id'] ?? null;
 
 if (
     !$employeeId ||
@@ -39,9 +40,9 @@ if (
 
 $db->query("
     INSERT INTO compensation_reviews 
-    (employee_id, current_salary, proposed_salary, review_type, review_date, effective_date, finance_notes, created_by)
+    (employee_id, current_salary, proposed_salary, review_type, review_date, effective_date, finance_notes, created_by, proposed_hourly_rate)
     VALUES 
-    (:employee_id, :current_salary, :proposed_salary, :review_type, :review_date, :effective_date, :finance_notes, :created_by)
+    (:employee_id, :current_salary, :proposed_salary, :review_type, :review_date, :effective_date, :finance_notes, :created_by, :ratePerhour)
 ", [
     'employee_id' => $employeeId,
     'current_salary' => $currentSalary,
@@ -50,7 +51,9 @@ $db->query("
     'review_date' => $reviewDate,
     'effective_date' => $effectiveDate,
     'finance_notes' => $notes,
-    'created_by' => $createdBy
+    'created_by' => $createdBy,
+    'ratePerhour' => $ratePerhour
+
 ]);
 
 $_SESSION['success'][] = "Compensation review submitted successfully.";
