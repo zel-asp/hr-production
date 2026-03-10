@@ -2,9 +2,10 @@
 // Add this at the very top for debugging
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
-
 use Core\Database;
 require base_path('vendor/autoload.php');
+require base_path("core/middleware/adminAuth.php");
+
 
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
@@ -157,11 +158,62 @@ try {
                 }
             }
 
-            // Check if employee exists
-            $employee = $db->query("SELECT id, full_name, shift_id FROM employees WHERE employee_number = ? OR id = ?", [
-                $employee_id,
+            // Check if employee exists - with multiple format attempts
+            $employee = null;
+            $original_id = $employee_id;
+
+            // Try 1: Direct match as entered
+            $employee = $db->query("SELECT id, full_name, shift_id, employee_number FROM employees WHERE employee_number = ?", [
                 $employee_id
             ])->fetch_one();
+
+            // Try 2: If it's just a number, try with EMP- prefix
+            if (!$employee && is_numeric($employee_id)) {
+                $formatted_id = 'EMP-' . str_pad($employee_id, 3, '0', STR_PAD_LEFT);
+                error_log("Trying formatted ID: $formatted_id for original: $original_id");
+
+                $employee = $db->query("SELECT id, full_name, shift_id, employee_number FROM employees WHERE employee_number = ?", [
+                    $formatted_id
+                ])->fetch_one();
+
+                if ($employee) {
+                    $employee_id = $formatted_id; // Use the formatted version for display
+                }
+            }
+
+            // Try 3: If it has EMP- but wrong padding (EMP-60 vs EMP-060)
+            if (!$employee && preg_match('/^EMP-(\d+)$/i', $employee_id, $matches)) {
+                $number = $matches[1];
+                $formatted_id = 'EMP-' . str_pad($number, 3, '0', STR_PAD_LEFT);
+                error_log("Repadding EMP number: $formatted_id for original: $original_id");
+
+                $employee = $db->query("SELECT id, full_name, shift_id, employee_number FROM employees WHERE employee_number = ?", [
+                    $formatted_id
+                ])->fetch_one();
+            }
+
+            // Try 4: Try by ID (if they used the database ID)
+            if (!$employee && is_numeric($employee_id)) {
+                $employee = $db->query("SELECT id, full_name, shift_id, employee_number FROM employees WHERE id = ?", [
+                    $employee_id
+                ])->fetch_one();
+            }
+
+            if (!$employee) {
+                $errors[] = "Row {$rowNumber}: Employee '{$original_id}' not found in database. Available: EMP-060 (Janzel Dolo), EMP-063 (Uzumaki Dela CRUZ)";
+
+                // Log all available employees for debugging
+                $all_emps = $db->query("SELECT employee_number, full_name FROM employees")->find();
+                $available = [];
+                foreach ($all_emps as $emp) {
+                    $available[] = $emp['employee_number'] . ' (' . $emp['full_name'] . ')';
+                }
+                error_log("Available employees: " . implode(', ', $available));
+                continue;
+            }
+
+            $db_employee_id = $employee['id'];
+            error_log("Found employee: {$employee['full_name']} with ID: {$db_employee_id}, Number: {$employee['employee_number']}");
 
             if (!$employee) {
                 $errors[] = "Row {$rowNumber}: Employee ID {$employee_id} not found in database";
@@ -259,56 +311,6 @@ try {
             $errors[] = "Failed to update shift for employee ID {$employee_id}: " . $e->getMessage();
         }
     }
-
-    // ============================================
-// LOG UPLOAD TO attendance_uploads TABLE
-// ============================================
-    try {
-        // Prepare errors JSON with all issues
-        $errors_json = null;
-        if (!empty($errors) || !empty($schedule_conflicts) || !empty($invalid_shifts)) {
-            $all_issues = [
-                'row_errors' => $errors,
-                'leave_conflicts' => $schedule_conflicts,
-                'invalid_shifts' => $invalid_shifts
-            ];
-            $errors_json = json_encode($all_issues, JSON_PRETTY_PRINT);
-        }
-
-        // Get current user ID from session (if you have user authentication)
-        // Adjust this based on your session variable name
-        $uploaded_by = $_SESSION['user_id'] ?? $_SESSION['admin_id'] ?? 1;
-
-        // Insert into attendance_uploads
-        $db->query("
-        INSERT INTO attendance_uploads (
-            filename, 
-            file_size, 
-            records_processed, 
-            shift_updates, 
-            errors, 
-            uploaded_by, 
-            department, 
-            created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
-    ", [
-            $file['name'],
-            $file['size'],
-            $processed,
-            $shift_updates,
-            $errors_json,
-            $uploaded_by,
-            $department
-        ]);
-
-        $upload_id = $db->lastInsertId();
-        error_log("Upload logged successfully with ID: " . $upload_id . " - Processed: " . $processed . " records");
-
-    } catch (Exception $e) {
-        // Log error but don't stop the process
-        error_log("FAILED to log upload to attendance_uploads: " . $e->getMessage());
-    }
-
     // Commit transaction
     $db->commit();
 

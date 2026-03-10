@@ -7,7 +7,7 @@
         </div>
         <div class="flex items-center gap-2">
             <!-- Download Schedule Template Button -->
-            <a href="/assets/template/scheduleTest.xlsx"
+            <a href="/assets/template/Template.xlsx"
                 class="px-4 py-2 text-sm font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors duration-200 flex items-center gap-2">
                 <i class="fas fa-file-excel"></i>
                 Download Schedule Template
@@ -370,102 +370,116 @@
         </div>
     </div>
 
-    <!-- Recent Uploads History -->
+    <!-- Schedules by Date - Bundled Download -->
     <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
             <div class="flex items-center gap-4">
-                <h3 class="text-lg font-semibold text-gray-800">Recent Upload History</h3>
-                <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-                    <?= $totalUploads ?? 0 ?> total uploads
-                </span>
-            </div>
-            <div class="flex items-center gap-3">
-                <span class="text-xs text-gray-400">
-                    <i class="far fa-clock mr-1"></i>
-                    Last:
-                    <?= $lastUploadFormatted ?? 'Never' ?>
+                <h3 class="text-lg font-semibold text-gray-800">Schedules by Date</h3>
+                <span class="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full">
+                    <?= $totalScheduleDates ?? 0 ?> total dates
                 </span>
             </div>
         </div>
 
         <div class="p-6">
-            <?php if (empty($recentUploads)): ?>
+            <?php if (empty($bundledSchedules)): ?>
                 <div class="text-center py-8">
                     <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <i class="fas fa-cloud-upload-alt text-2xl text-gray-300"></i>
+                        <i class="fas fa-calendar-alt text-2xl text-gray-300"></i>
                     </div>
-                    <p class="text-sm text-gray-400">No uploads yet</p>
-                    <p class="text-xs text-gray-300 mt-1">Upload a schedule file to see history</p>
+                    <p class="text-sm text-gray-400">No schedules found</p>
+                    <p class="text-xs text-gray-300 mt-1">Upload or create schedules to see them here</p>
                 </div>
             <?php else: ?>
                 <div class="space-y-3">
-                    <?php foreach ($recentUploads as $upload): ?>
+                    <?php foreach ($bundledSchedules as $bundle):
+                        $statusClass = '';
+                        $statusText = '';
+
+                        if ($bundle['status'] == 'Today') {
+                            $statusClass = 'bg-blue-50 text-blue-600 border-blue-200';
+                            $statusText = 'Today';
+                        } elseif ($bundle['status'] == 'Upcoming') {
+                            $statusClass = 'bg-green-50 text-green-600 border-green-200';
+                            $statusText = 'Upcoming';
+                        } else {
+                            $statusClass = 'bg-gray-50 text-gray-500 border-gray-200';
+                            $statusText = 'Past';
+                        }
+                        ?>
                         <div
-                            class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors duration-200 group">
-                            <div class="flex items-center gap-3">
+                            class="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-100 hover:border-gray-300 transition-colors duration-200 group">
+                            <div class="flex items-center gap-4 flex-1">
+                                <!-- Date Icon -->
                                 <div
-                                    class="w-10 h-10 <?= strpos($upload['filename'], 'schedule') !== false ? 'bg-emerald-100' : 'bg-green-100' ?> rounded-lg flex items-center justify-center">
+                                    class="w-12 h-12 <?= $bundle['status'] == 'Today' ? 'bg-blue-100' : ($bundle['status'] == 'Upcoming' ? 'bg-green-100' : 'bg-gray-100') ?> rounded-xl flex items-center justify-center">
                                     <i
-                                        class="fas fa-file-excel <?= strpos($upload['filename'], 'schedule') !== false ? 'text-emerald-600' : 'text-green-600' ?>"></i>
+                                        class="fas fa-calendar-day <?= $bundle['status'] == 'Today' ? 'text-blue-600' : ($bundle['status'] == 'Upcoming' ? 'text-green-600' : 'text-gray-500') ?> text-xl"></i>
                                 </div>
-                                <div>
-                                    <p class="text-sm font-medium text-gray-800 group-hover:text-gray-900">
-                                        <?= htmlspecialchars($upload['filename']) ?>
-                                    </p>
-                                    <p class="text-xs text-gray-400 flex items-center gap-2">
-                                        <span>
-                                            <i class="far fa-calendar-alt mr-1"></i>
-                                            <?= htmlspecialchars($upload['formatted_date'] ?? date('M j, Y', strtotime($upload['created_at']))) ?>
+
+                                <!-- Date Info -->
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <h4 class="text-base font-semibold text-gray-800">
+                                            <?= $bundle['formatted_date'] ?>
+                                        </h4>
+                                        <span class="text-xs px-2 py-0.5 rounded-full border <?= $statusClass ?>">
+                                            <?= $statusText ?>
                                         </span>
-                                        <span>•</span>
-                                        <span>
-                                            <i class="far fa-file-alt mr-1"></i>
-                                            <?= $upload['records_processed'] ?> records
+                                        <span class="text-xs text-gray-400">
+                                            <?= $bundle['day_of_week'] ?>
                                         </span>
-                                        <?php if (!empty($upload['shift_updates'])): ?>
-                                            <span>•</span>
-                                            <span class="text-blue-600">
-                                                <i class="fas fa-exchange-alt mr-1"></i>
-                                                <?= $upload['shift_updates'] ?> shifts
+                                    </div>
+
+                                    <!-- Stats Row -->
+                                    <div class="flex flex-wrap items-center gap-3 mt-2">
+                                        <span class="text-xs bg-white px-2 py-1 rounded-md border border-gray-200">
+                                            <i class="fas fa-users text-gray-500 mr-1"></i>
+                                            <?= $bundle['employee_count'] ?>
+                                            employee<?= $bundle['employee_count'] != 1 ? 's' : '' ?>
+                                        </span>
+                                        <span class="text-xs bg-white px-2 py-1 rounded-md border border-gray-200">
+                                            <i class="fas fa-clock text-gray-500 mr-1"></i>
+                                            <?= $bundle['total_shifts'] ?> shift<?= $bundle['total_shifts'] != 1 ? 's' : '' ?>
+                                        </span>
+                                        <?php if (!empty($bundle['shift_types']) && $bundle['shift_types'] != ''): ?>
+                                            <span
+                                                class="text-xs bg-white px-2 py-1 rounded-md border border-gray-200 max-w-xs truncate">
+                                                <i class="fas fa-exchange-alt text-gray-500 mr-1"></i>
+                                                <?= $bundle['shift_types'] ?>
                                             </span>
                                         <?php endif; ?>
-                                    </p>
+                                    </div>
+
+                                    <!-- Time Range (if available) -->
+                                    <?php if (!empty($bundle['earliest_time_in']) && !empty($bundle['latest_time_out'])): ?>
+                                        <p class="text-xs text-gray-400 mt-2">
+                                            <i class="far fa-clock mr-1"></i>
+                                            Shifts from <?= date('g:i A', strtotime($bundle['earliest_time_in'])) ?>
+                                            to <?= date('g:i A', strtotime($bundle['latest_time_out'])) ?>
+                                        </p>
+                                    <?php endif; ?>
                                 </div>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <!-- Download Button -->
-                                <a href="/download-upload?filter=<?= $scheduleFilter ?? 'upcoming' ?>&department=<?= $scheduleDepartmentFilter ?? '' ?>&employee_id=<?= $scheduleEmployeeFilter ?? '' ?>"
-                                    class="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-50 flex items-center gap-1">
-                                    <i class="fas fa-download"></i>
-                                    Download
-                                </a>
 
-                                <!-- Status Indicator -->
-                                <?php if (empty($upload['errors'])): ?>
-                                    <span
-                                        class="text-xs bg-green-50 text-green-600 px-2 py-1 rounded-full border border-green-200 hidden sm:inline">
-                                        <i class="fas fa-check-circle mr-1"></i>
-                                        Success
-                                    </span>
-                                <?php else: ?>
-                                    <span
-                                        class="text-xs bg-yellow-50 text-yellow-600 px-2 py-1 rounded-full border border-yellow-200 hidden sm:inline">
-                                        <i class="fas fa-exclamation-triangle mr-1"></i>
-                                        Warnings
-                                    </span>
-                                <?php endif; ?>
-                            </div>
+                            <!-- Download Button -->
+                            <a href="/download-upload?date=<?= $bundle['schedule_date'] ?>"
+                                class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors duration-200 flex items-center gap-2 ml-4 group-hover:shadow-sm"
+                                title="Download all schedules for <?= $bundle['formatted_date'] ?>">
+                                <i class="fas fa-file-excel text-green-600"></i>
+                                <span class="font-medium">Download Day</span>
+                                <i class="fas fa-download text-gray-400 group-hover:text-gray-600"></i>
+                            </a>
                         </div>
                     <?php endforeach; ?>
                 </div>
 
                 <!-- View All Link -->
-                <?php if ($totalUploads > 3): ?>
+                <?php if ($totalScheduleDates > 10): ?>
                     <div class="mt-4 text-center">
-                        <a href="/upload-history"
+                        <a href="/all-schedules-by-date"
                             class="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200">
-                            View all
-                            <?= $totalUploads ?> uploads
+                            View all <?= $totalScheduleDates ?> dates
                             <i class="fas fa-arrow-right ml-1"></i>
                         </a>
                     </div>
