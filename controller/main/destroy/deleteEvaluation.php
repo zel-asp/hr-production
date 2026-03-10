@@ -5,7 +5,7 @@ use Core\Database;
 $config = require base_path('config/config.php');
 $db = new Database($config['database']);
 
-
+require base_path("core/middleware/adminAuth.php");
 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['__method'] === 'DELETE') {

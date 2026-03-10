@@ -4,7 +4,7 @@ use Core\Database;
 
 $config = require base_path('config/config.php');
 $db = new Database($config['database']);
-
+require base_path("core/middleware/adminAuth.php");
 
 try {
     // Handle Delete Job Posting

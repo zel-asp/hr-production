@@ -2,6 +2,7 @@
 // download-upload.php
 
 use Core\Database;
+require base_path("core/middleware/adminAuth.php");
 
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
