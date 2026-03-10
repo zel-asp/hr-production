@@ -25,106 +25,120 @@
 
         <div class="flex min-h-screen">
             <!-- Sidebar Tabs - MODIFIED: Added all new modules -->
-            <div class="w-72 bg-white shadow-lg p-4 sidebar-fixed" id="mainSidebar">
-                <div class="flex items-center mb-6">
-                    <span class="title-accent"></span>
-                    <h1 class="text-xl font-semibold text-gray-800">Hotel & Restaurant HR</h1>
+            <div class="w-72 bg-white shadow-lg p-4 sidebar-fixed flex flex-col" id="mainSidebar">
+                <div>
+                    <div class="flex items-center mb-6">
+                        <span class="title-accent"></span>
+                        <h1 class="text-xl font-semibold text-gray-800">Hotel & Restaurant HR</h1>
+                    </div>
+
+                    <!-- Close button for mobile -->
+                    <button class="absolute top-4 right-4 text-gray-500 md:hidden" onclick="closeMobileSidebar()">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+
+                    <!-- navigations -->
+                    <div class="space-y-1" id="sideTabs">
+                        <!-- RECRUITMENT & TALENT Section -->
+                        <div class="sidebar-category">Human Resource 1</div>
+                        <div class="side-tab active" data-tab="recruitment">
+                            <i class="fas fa-bullhorn"></i>
+                            Recruitment
+                        </div>
+                        <div class="side-tab" data-tab="applicant">
+                            <i class="fas fa-users"></i>
+                            Applicant
+                        </div>
+                        <div class="side-tab" data-tab="onboarding">
+                            <i class="fas fa-rocket"></i>
+                            New Hire Onboarding
+                        </div>
+                        <div class="side-tab" data-tab="performance">
+                            <i class="fas fa-chart-line"></i>
+                            Performance
+                        </div>
+                        <div class="side-tab" data-tab="recognition">
+                            <i class="fas fa-star"></i>
+                            Social Recognition
+                        </div>
+
+                        <!-- PERFORMANCE & DEVELOPMENT Section -->
+                        <div class="sidebar-category">Human Resource 2</div>
+                        <div class="side-tab" data-tab="competency">
+                            <i class="fas fa-clipboard-check"></i>
+                            Competency
+                        </div>
+                        <div class="side-tab" data-tab="learning">
+                            <i class="fas fa-graduation-cap"></i>
+                            Learning
+                        </div>
+                        <div class="side-tab" data-tab="training">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                            Training
+                        </div>
+                        <div class="side-tab" data-tab="succession">
+                            <i class="fas fa-sitemap"></i>
+                            Succession Planning
+                        </div>
+
+                        <!-- EMPLOYEE SERVICES Section -->
+                        <div class="sidebar-category">Human Resource 3</div>
+                        <div class="side-tab" data-tab="time">
+                            <i class="fas fa-clock"></i>
+                            Time and Attendance System
+                        </div>
+                        <div class="side-tab" data-tab="shift">
+                            <i class="fas fa-calendar-alt"></i>
+                            Shift and Schedule
+                        </div>
+                        <div class="side-tab" data-tab="timesheet">
+                            <i class="fas fa-table"></i>
+                            Timesheet
+                        </div>
+                        <div class="side-tab" data-tab="leave">
+                            <i class="fas fa-umbrella-beach"></i>
+                            Leave
+                        </div>
+                        <div class="side-tab" data-tab="claims">
+                            <i class="fas fa-file-invoice"></i>
+                            Claims and Reimbursement
+                        </div>
+
+                        <!-- CORE HR Section -->
+                        <div class="sidebar-category">Human Resource 4</div>
+                        <div class="side-tab" data-tab="hcm">
+                            <i class="fas fa-database"></i>
+                            Core Human Capital
+                        </div>
+                        <div class="side-tab" data-tab="payroll">
+                            <i class="fas fa-calculator"></i>
+                            Payroll
+                        </div>
+                        <div class="side-tab" data-tab="compensation">
+                            <i class="fas fa-coins"></i>
+                            Compensation Planning
+                        </div>
+                        <div class="side-tab" data-tab="hmo">
+                            <i class="fas fa-notes-medical"></i>
+                            HMO & Benefits Administration
+                        </div>
+                        <div class="side-tab" data-tab="analytics">
+                            <i class="fas fa-chart-pie"></i>
+                            HR Analytics Dashboard
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Close button for mobile -->
-                <button class="absolute top-4 right-4 text-gray-500 md:hidden" onclick="closeMobileSidebar()">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-
-                <!-- navigations -->
-                <div class="space-y-1" id="sideTabs">
-                    <!-- RECRUITMENT & TALENT Section -->
-                    <div class="sidebar-category">Human Resource 1</div>
-                    <div class="side-tab active" data-tab="recruitment">
-                        <i class="fas fa-bullhorn"></i>
-                        Recruitment
-                    </div>
-                    <div class="side-tab" data-tab="applicant">
-                        <i class="fas fa-users"></i>
-                        Applicant
-                    </div>
-                    <div class="side-tab" data-tab="onboarding">
-                        <i class="fas fa-rocket"></i>
-                        New Hire Onboarding
-                    </div>
-                    <div class="side-tab" data-tab="performance">
-                        <i class="fas fa-chart-line"></i>
-                        Performance
-                    </div>
-                    <div class="side-tab" data-tab="recognition">
-                        <i class="fas fa-star"></i>
-                        Social Recognition
-                    </div>
-
-                    <!-- PERFORMANCE & DEVELOPMENT Section -->
-                    <div class="sidebar-category">Human Resource 2</div>
-                    <div class="side-tab" data-tab="competency">
-                        <i class="fas fa-clipboard-check"></i>
-                        Competency
-                    </div>
-                    <div class="side-tab" data-tab="learning">
-                        <i class="fas fa-graduation-cap"></i>
-                        Learning
-                    </div>
-                    <div class="side-tab" data-tab="training">
-                        <i class="fas fa-chalkboard-teacher"></i>
-                        Training
-                    </div>
-                    <div class="side-tab" data-tab="succession">
-                        <i class="fas fa-sitemap"></i>
-                        Succession Planning
-                    </div>
-
-                    <!-- EMPLOYEE SERVICES Section -->
-                    <div class="sidebar-category">Human Resource 3</div>
-                    <div class="side-tab" data-tab="time">
-                        <i class="fas fa-clock"></i>
-                        Time and Attendance System
-                    </div>
-                    <div class="side-tab" data-tab="shift">
-                        <i class="fas fa-calendar-alt"></i>
-                        Shift and Schedule
-                    </div>
-                    <div class="side-tab" data-tab="timesheet">
-                        <i class="fas fa-table"></i>
-                        Timesheet
-                    </div>
-                    <div class="side-tab" data-tab="leave">
-                        <i class="fas fa-umbrella-beach"></i>
-                        Leave
-                    </div>
-                    <div class="side-tab" data-tab="claims">
-                        <i class="fas fa-file-invoice"></i>
-                        Claims and Reimbursement
-                    </div>
-
-                    <!-- CORE HR Section -->
-                    <div class="sidebar-category">Human Resource 4</div>
-                    <div class="side-tab" data-tab="hcm">
-                        <i class="fas fa-database"></i>
-                        Core Human Capital
-                    </div>
-                    <div class="side-tab" data-tab="payroll">
-                        <i class="fas fa-calculator"></i>
-                        Payroll
-                    </div>
-                    <div class="side-tab" data-tab="compensation">
-                        <i class="fas fa-coins"></i>
-                        Compensation Planning
-                    </div>
-                    <div class="side-tab" data-tab="hmo">
-                        <i class="fas fa-notes-medical"></i>
-                        HMO & Benefits Administration
-                    </div>
-                    <div class="side-tab" data-tab="analytics">
-                        <i class="fas fa-chart-pie"></i>
-                        HR Analytics Dashboard
-                    </div>
+                <!-- Logout Button at Bottom -->
+                <div class="mt-auto pt-4 border-t border-gray-200">
+                    <form method="POST" action="/logout">
+                        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                        <button type="submit"
+                            class="w-full bg-red-600 hover:bg-red-700 text-white px-3 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Logout
+                        </button>
+                    </form>
                 </div>
             </div>
 

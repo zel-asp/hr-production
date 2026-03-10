@@ -15,9 +15,9 @@ $education = trim($_POST['education'] ?? '');
 $skills = trim($_POST['skills'] ?? '');
 $gender = trim($_POST['gender'] ?? '');
 $age = trim($_POST['age'] ?? '');
+$rate = $_POST['ratePerHour'];
 $coverNote = trim($_POST['cover_note'] ?? '');
 $resumePath = trim($_POST['resume_url'] ?? null);
-
 
 $errors = [];
 
@@ -58,9 +58,9 @@ $department = $departments['department'];
 try {
     $db->query("
         INSERT INTO applicants 
-        (full_name, email, phone, position, department, experience, education, skills, resume_path, cover_note, age, gender)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?)
-    ", [$fullName, $email, $phone, $position, $department, $experience, $education, $skills, $resumePath, $coverNote, $age, $gender]);
+        (full_name, email, phone, position, department, experience, education, skills, resume_path, cover_note, age, gender, rate_per_hour)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?,?)
+    ", [$fullName, $email, $phone, $position, $department, $experience, $education, $skills, $resumePath, $coverNote, $age, $gender, $rate]);
 
     $_SESSION['success'] = ["Application submitted successfully!"];
     header('Location: /jobPosting#applySection');

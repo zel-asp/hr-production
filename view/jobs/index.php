@@ -35,6 +35,7 @@
     </head>
 
     <body class="bg-gray-100 p-4 md:p-8 antialiased">
+        <?php require base_path('view/partials/message.php'); ?>
         <!-- Main Container - Separated from background -->
         <div class="max-w-6xl mx-auto bg-white rounded-2xl shadow-lg p-6 md:p-8">
             <!-- Page Header -->
@@ -99,10 +100,10 @@
                                         <div class="flex items-center">
                                             <span class="text-xs text-primary mr-1">💰</span>
                                             <span
-                                                class="text-sm font-medium text-gray-800"><?= htmlspecialchars($job['salary']) ?></span>
+                                                class="text-sm font-medium text-gray-800"><?= htmlspecialchars($job['salary']) ?>/hr</span>
                                         </div>
                                         <button
-                                            onclick="showApplicationForm('<?= htmlspecialchars($job['position']) ?>', <?= $index ?>)"
+                                            onclick="showApplicationForm('<?= htmlspecialchars($job['position']) ?>', <?= $index ?>, <?= (float) $job['salary'] ?>)"
                                             class="apply-btn text-sm text-white bg-primary px-3 py-1.5 rounded-lg transition-colors duration-200 flex items-center gap-1">
                                             Apply
                                         </button>
@@ -151,45 +152,9 @@
                         <span id="selected-position-display" class="text-xs font-semibold text-gray-900"></span>
                     </div>
 
-                    <!-- Flash Messages -->
-                    <?php if (!empty($_SESSION['success'])): ?>
-                        <div class="mb-4 space-y-2">
-                            <?php foreach ($_SESSION['success'] as $msg): ?>
-                                <div class="flex items-center justify-between bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg"
-                                    role="alert">
-                                    <span class="text-sm flex items-center gap-2">
-                                        <i class="fas fa-check-circle text-green-500"></i>
-                                        <?= htmlspecialchars($msg) ?>
-                                    </span>
-                                    <button onclick="this.parentElement.remove();" class="text-green-600 hover:text-green-800">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                        <?php unset($_SESSION['success']); ?>
-                    <?php endif; ?>
-
-                    <?php if (!empty($_SESSION['error'])): ?>
-                        <div class="mb-4 space-y-2">
-                            <?php foreach ($_SESSION['error'] as $msg): ?>
-                                <div class="flex items-center justify-between bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg"
-                                    role="alert">
-                                    <span class="text-sm flex items-center gap-2">
-                                        <i class="fas fa-exclamation-circle text-red-500"></i>
-                                        <?= htmlspecialchars($msg) ?>
-                                    </span>
-                                    <button onclick="this.parentElement.remove();" class="text-red-600 hover:text-red-800">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                        <?php unset($_SESSION['error']); ?>
-                    <?php endif; ?>
-
                     <form method="POST" action="/submitApplication" class="space-y-4" id="applicationForm">
                         <input type="hidden" name="position" id="selected-position" value="">
+                        <input type="hidden" name="ratePerHour" id="rate" value="">
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <!-- Full Name -->
@@ -316,11 +281,16 @@
         </div>
 
         <script>
-            function showApplicationForm(position, index) {
+            function showApplicationForm(position, index, rate) {
                 // Set the position values
                 document.getElementById('selected-position').value = position;
                 document.getElementById('selected-position-title').textContent = position;
                 document.getElementById('selected-position-display').textContent = position;
+                document.getElementById('selected-position-display').textContent = position;
+                document.getElementById('rate').value = rate;
+
+                console.log(rate);
+
 
                 // Show the form with animation
                 const formSection = document.getElementById('applySection');

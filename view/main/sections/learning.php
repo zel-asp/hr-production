@@ -359,17 +359,6 @@
                             </div>
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Assign To (Staff)</label>
-                            <select name="assigned_staff"
-                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" required>
-                                <option value="">Select trainer/mentor</option>
-                                <option value="Sarah Reyes">Sarah Reyes - Manager</option>
-                                <option value="Mike Dela Cruz">Mike Dela Cruz - Trainer</option>
-                                <option value="Lisa Martinez">Lisa Martinez - HR</option>
-                            </select>
-                        </div>
-
                         <button type="submit" class="w-full btn-primary py-2">
                             <i class="fas fa-plus-circle mr-2"></i>Assign Task
                         </button>
