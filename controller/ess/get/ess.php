@@ -1356,6 +1356,205 @@ try {
     error_log("Error fetching mentees dropdown: " . $th->getMessage());
 }
 
+// ============================================
+// EMPLOYEE DOCUMENTS UPLOAD SECTION
+// ============================================
+
+// Get employee documents from database
+$employeeDocuments = [];
+
+// Check each document field
+$documentFields = [
+    'nbi_clearance' => 'NBI Clearance',
+    'medical_result' => 'Medical Result',
+    'resume' => 'Resume',
+    'birth_certificate' => 'Birth Certificate',
+    'sss_document' => 'SSS Document',
+    'philhealth_document' => 'PhilHealth Document',
+    'pagibig_document' => 'Pag-IBIG Document'
+];
+
+foreach ($documentFields as $field => $label) {
+    if (!empty($employeeInfo[$field])) {
+        $employeeDocuments[] = [
+            'type' => $field,
+            'label' => $label,
+            'url' => $employeeInfo[$field],
+            'uploaded_at' => $employeeInfo['updated_at'] ?? date('Y-m-d H:i:s'),
+            'icon' => getDocumentIcon($field)
+        ];
+    }
+}
+
+// Sort documents by most recent first (based on updated_at)
+usort($employeeDocuments, function ($a, $b) {
+    return strtotime($b['uploaded_at']) - strtotime($a['uploaded_at']);
+});
+
+// Function to get icon based on document type
+function getDocumentIcon($documentType)
+{
+    return match ($documentType) {
+        'nbi_clearance' => 'fa-fingerprint',
+        'medical_result' => 'fa-notes-medical',
+        'birth_certificate' => 'fa-id-card',
+        'resume' => 'fa-id-card',
+        'sss_document' => 'fa-id-card',
+        'philhealth_document' => 'fa-heartbeat',
+        'pagibig_document' => 'fa-home',
+        default => 'fa-file'
+    };
+}
+
+// Function to get color based on document type
+function getDocumentColor($documentType)
+{
+    return match ($documentType) {
+        'nbi_clearance' => 'red',
+        'medical_result' => 'teal',
+        'birth_certificate' => 'green',
+        'resume' => 'pink',
+        'sss_document' => 'blue',
+        'philhealth_document' => 'red',
+        'pagibig_document' => 'yellow',
+        default => 'gray'
+    };
+}
+
+// ============================================
+// NOTES & RECOGNITION SECTION
+// ============================================
+
+// Pagination
+$notePage = isset($_GET['note_page']) ? max(1, (int) $_GET['note_page']) : 1;
+$notePerPage = 5;
+$noteOffset = ($notePage - 1) * $notePerPage;
+
+// Get employee ID from session
+$employeeId = $_SESSION['employee']['employee_record_id']['id'] ?? $_SESSION['employee']['employee_record_id'] ?? null;
+
+// ============================================
+// NOTES STATS
+// ============================================
+
+// Get total recognitions count
+try {
+    $noteTotalRecognitions = $db->query("
+        SELECT COUNT(*) as count 
+        FROM employee_recognitions 
+        WHERE employee_id = ?
+    ", [$employeeId])->fetch_one()['count'] ?? 0;
+} catch (\Throwable $th) {
+    $noteTotalRecognitions = 0;
+    error_log("Error fetching recognitions count: " . $th->getMessage());
+}
+
+// Get total admin notes count
+try {
+    $noteTotalNotes = $db->query("
+        SELECT COUNT(*) as count 
+        FROM admin_notes 
+        WHERE employee_id = ? AND status = 'active'
+    ", [$employeeId])->fetch_one()['count'] ?? 0;
+} catch (\Throwable $th) {
+    $noteTotalNotes = 0;
+    error_log("Error fetching notes count: " . $th->getMessage());
+}
+
+// Get new/unread count (notes from last 7 days)
+try {
+    $noteNewCount = $db->query("
+        SELECT COUNT(*) as count 
+        FROM admin_notes 
+        WHERE employee_id = ? 
+        AND status = 'active'
+        AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+    ", [$employeeId])->fetch_one()['count'] ?? 0;
+} catch (\Throwable $th) {
+    $noteNewCount = 0;
+    error_log("Error fetching new notes count: " . $th->getMessage());
+}
+
+// ============================================
+// RECENT ACTIVITY FEED (Paginated)
+// ============================================
+
+// Get total activity count for pagination
+try {
+    $noteTotalActivities = $db->query("
+        SELECT COUNT(*) as total FROM (
+            SELECT id, 'recognition' as type, created_at FROM employee_recognitions WHERE employee_id = ?
+            UNION ALL
+            SELECT id, 'note' as type, created_at FROM admin_notes WHERE employee_id = ? AND status = 'active'
+        ) as activities
+    ", [$employeeId, $employeeId])->fetch_one()['total'] ?? 0;
+} catch (\Throwable $th) {
+    $noteTotalActivities = 0;
+    error_log("Error fetching total activities: " . $th->getMessage());
+}
+
+// Get paginated activity feed
+try {
+    $noteActivities = $db->query("
+        (SELECT 
+            'recognition' as type,
+            id,
+            recognition_type as title,
+            performance_highlight as content,
+            recognized_by as author_id,
+            NULL as author_name,
+            recognition_date as activity_date,
+            created_at
+        FROM employee_recognitions 
+        WHERE employee_id = ?)
+        
+        UNION ALL
+        
+        (SELECT 
+            'note' as type,
+            id,
+            note_title as title,
+            note_content as content,
+            created_by as author_id,
+            (SELECT full_name FROM employees WHERE id = created_by) as author_name,
+            created_at as activity_date,
+            created_at
+        FROM admin_notes 
+        WHERE employee_id = ? AND status = 'active')
+        
+        ORDER BY created_at DESC
+        LIMIT $notePerPage OFFSET $noteOffset
+    ", [$employeeId, $employeeId])->find();
+} catch (\Throwable $th) {
+    $noteActivities = [];
+    error_log("Error fetching activities: " . $th->getMessage());
+}
+
+$noteTotalPages = ceil($noteTotalActivities / $notePerPage);
+
+// Format time difference function
+function noteTimeAgo($datetime)
+{
+    $time = strtotime($datetime);
+    $now = time();
+    $diff = $now - $time;
+
+    if ($diff < 60) {
+        return $diff . 's ago';
+    } elseif ($diff < 3600) {
+        $mins = floor($diff / 60);
+        return $mins . 'm ago';
+    } elseif ($diff < 86400) {
+        $hours = floor($diff / 3600);
+        return $hours . 'h ago';
+    } elseif ($diff < 604800) {
+        $days = floor($diff / 86400);
+        return $days . 'd ago';
+    } else {
+        return date('M j', $time);
+    }
+}
+
 // Add all variables to view
 view_path('ess', 'index', [
     'tasks' => $limitedTasks,
@@ -1450,4 +1649,16 @@ view_path('ess', 'index', [
     'mentorAverageRating' => $mentorAverageRating,
     'mentorRecentRatings' => $mentorRecentRatings,
     'mentorMenteesDropdown' => $mentorMenteesDropdown,
+
+    'employeeDocuments' => $employeeDocuments,
+
+    // NOTES & RECOGNITION VARIABLES
+    'notePage' => $notePage,
+    'notePerPage' => $notePerPage,
+    'noteTotalPages' => $noteTotalPages,
+    'noteTotalActivities' => $noteTotalActivities,
+    'noteTotalRecognitions' => $noteTotalRecognitions,
+    'noteTotalNotes' => $noteTotalNotes,
+    'noteNewCount' => $noteNewCount,
+    'noteActivities' => $noteActivities,
 ]);

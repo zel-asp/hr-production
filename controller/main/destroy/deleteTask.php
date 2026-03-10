@@ -1,6 +1,7 @@
 <?php
 
 use Core\Database;
+require base_path("core/middleware/adminAuth.php");
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);

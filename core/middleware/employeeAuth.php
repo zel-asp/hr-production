@@ -13,8 +13,9 @@ if (!isset($_SESSION['employee'])) {
 
 $userId = $_SESSION['employee']['account_id'] ?? null;
 $token = $_SESSION['employee']['token'] ?? null;
+$role = $_SESSION['employee']['role'] ?? null;
 
-if (!$userId || !$token) {
+if (!$userId || !$token || !$role) {
     unset($_SESSION['employee']);
     header('Location: /login');
     $_SESSION['error'][] = "You are unauthorized";

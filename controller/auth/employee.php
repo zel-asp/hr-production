@@ -72,6 +72,7 @@ $db->query(
 );
 
 $_SESSION['employee'] = [
+    'role' => 'employee',
     'account_id' => $account['id'],
     'applicant_id' => $account['applicant_id'],
     'employee_record_id' => $employeeId,
