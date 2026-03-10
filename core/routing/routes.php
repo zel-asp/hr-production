@@ -2,12 +2,15 @@
 // AUTHENTICATION ROUTES
 $router->get('/login', 'controller/auth/login.php');
 $router->post('/employee-login', 'controller/auth/employee.php');
+$router->post('/hr-login', 'controller/auth/hrLogin.php');
 $router->post('/logout', 'controller/auth/logout.php');
 
 // MAIN DASHBOARD & JOB MANAGEMENT
 $router->get('/', 'controller/ess/get/ess.php');
 $router->get('/main', 'controller/main/get/main.php');
 
+//requisition
+$router->patch('/update-requisition-status', 'controller/main/update/updateRequisition.php');
 
 $router->post('/postJob', 'controller/main/post/createJob.php');
 $router->patch('/update-job', 'controller/main/update/editJob.php');
@@ -19,6 +22,10 @@ $router->post('/submitApplication', 'controller/jobs/post/insertApplication.php'
 // APPLICANT MANAGEMENT
 $router->delete('/deleteApplicant', 'controller/main/destroy/deleteApplicant.php');
 $router->patch('/updateApplicantStatus', 'controller/main/update/updateApplicantStatus.php');
+$router->patch('/hire-applicant', 'controller/main/update/hireFromContract.php');
+$router->delete('/cancel-contract', 'controller/main/destroy/deleteContract.php');
+$router->post('/schedule-contract', 'controller/main/post/scheduleContract.php');
+
 
 // TASK MANAGEMENT
 $router->patch('/tasks/complete', 'controller/ess/update/taskCompleted.php');
@@ -75,3 +82,10 @@ $router->post('/assign-mentor', 'controller/main/post/assignMentor.php');
 $router->post('/give-recognition', 'controller/main/post/giveRecognition.php');
 $router->post('/mentor-rating', 'controller/ess/post/mentorRating.php');
 
+//Onboarding
+$router->post('/upload-document', 'controller/ess/post/uploadDocuments.php');
+$router->post('/send-requirement-notification', 'controller/main/post/requirementsNotif.php');
+
+//payroll
+$router->post('/payroll-summary', 'controller/main/post/savePayroll.php');
+$router->post('/process-all-payroll', 'controller/main/post/saveAllPayroll.php');

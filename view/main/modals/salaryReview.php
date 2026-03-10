@@ -11,6 +11,7 @@
         <div class="p-6">
             <form action="/add-compensation" method="POST" class="space-y-4">
                 <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                <input type="hidden" name="ratePerHour" value="" id="ratePerHour">
 
                 <div>
                     <label class="block text-sm font-medium mb-1">Employee</label>
