@@ -38,8 +38,9 @@ forms.forEach(form => {
         }
     });
 
-    form.addEventListener("submit", async function (e) {
-        e.preventDefault();
+    // Create a named function for the submit handler
+    const handleSubmit = async function (event) {
+        event.preventDefault();
 
         const file = fileInput.files[0];
 
@@ -90,13 +91,11 @@ forms.forEach(form => {
             submitBtn.classList.remove('bg-primary', 'hover:bg-gray-900');
             submitBtn.classList.add('bg-green-600', 'hover:bg-green-700');
 
-            // Optional: Reset after 2 seconds
-            setTimeout(() => {
-                submitBtn.innerHTML = originalBtnText;
-                submitBtn.classList.remove('bg-green-600', 'hover:bg-green-700', 'opacity-50', 'cursor-not-allowed');
-                submitBtn.classList.add('bg-primary', 'hover:bg-gray-900');
-                submitBtn.disabled = false;
-            }, 2000);
+            // Remove this event listener and submit the form
+            form.removeEventListener('submit', handleSubmit);
+
+            // Submit the form normally
+            form.submit();
 
         } catch (error) {
             alert("Upload failed: " + error.message);
@@ -105,6 +104,8 @@ forms.forEach(form => {
             submitBtn.disabled = false;
             submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
-    });
+    };
 
+    // Add the event listener
+    form.addEventListener('submit', handleSubmit);
 });
