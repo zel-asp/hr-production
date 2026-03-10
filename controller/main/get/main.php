@@ -2,6 +2,8 @@
 
 use Core\Database;
 
+require base_path("core/middleware/adminAuth.php");
+
 $config = require base_path('config/config.php');
 $db = new Database($config['database']);
 
@@ -23,7 +25,7 @@ try {
 // ============================================
 try {
     $allApplicants = $db->query(
-        "SELECT id, full_name, email, phone, position, experience, education, skills, resume_path, cover_note, status, hired_date, start_date, created_at, age, gender 
+        "SELECT id, full_name, email, phone, position, experience,contract_signing_date, education, skills, resume_path, cover_note, status, hired_date, start_date, created_at, age, gender 
         FROM applicants ORDER BY created_at DESC"
     )->find();
 } catch (\Throwable $th) {
@@ -66,7 +68,129 @@ try {
     $employeesForBenefits = [];
     error_log("Error fetching employees for benefits: " . $th->getMessage());
 }
+// ============================================
+// READY FOR CONTRACT SIGNING SECTION
+// ============================================
 
+// Pagination
+$contractReadyPage = isset($_GET['contract_page']) ? max(1, (int) $_GET['contract_page']) : 1;
+$contractReadyPerPage = 10;
+$contractReadyOffset = ($contractReadyPage - 1) * $contractReadyPerPage;
+
+// Filter parameters
+$contractReadySearch = isset($_GET['contract_search']) ? $_GET['contract_search'] : '';
+$contractReadyDept = isset($_GET['contract_dept']) ? $_GET['contract_dept'] : '';
+
+// Build WHERE clause for filters
+$contractWhereConditions = [];
+$contractParams = [];
+
+// Only get applicants with status 'Contract' and NOT in employees table
+$contractWhereConditions[] = "a.status = 'Contract'";
+$contractWhereConditions[] = "NOT EXISTS (SELECT 1 FROM employees e WHERE e.applicant_id = a.id)";
+
+if (!empty($contractReadySearch)) {
+    $contractWhereConditions[] = "(a.full_name LIKE ? OR a.email LIKE ? OR a.position LIKE ?)";
+    $searchTerm = "%$contractReadySearch%";
+    $contractParams[] = $searchTerm;
+    $contractParams[] = $searchTerm;
+    $contractParams[] = $searchTerm;
+}
+
+if (!empty($contractReadyDept)) {
+    $contractWhereConditions[] = "a.department = ?";
+    $contractParams[] = $contractReadyDept;
+}
+
+$contractWhereClause = "WHERE " . implode(" AND ", $contractWhereConditions);
+
+// Get total count for pagination
+try {
+    $totalContractReady = $db->query("
+        SELECT COUNT(DISTINCT a.id) as count
+        FROM applicants a
+        $contractWhereClause
+    ", $contractParams)->fetch_one()['count'] ?? 0;
+} catch (\Throwable $th) {
+    $totalContractReady = 0;
+    error_log("Error counting contract ready applicants: " . $th->getMessage());
+}
+
+// Get applicants with contract status and contract data
+try {
+    $contractReadyApplicants = $db->query("
+        SELECT 
+            a.id,
+            a.full_name,
+            a.email,
+            a.phone,
+            a.position,
+            a.department,
+            a.rate_per_hour,
+            a.experience,
+            a.education,
+            a.skills,
+            a.hired_date,
+            a.start_date,
+            a.interview_date,
+            a.resume_path,
+            a.created_at,
+            a.age,
+            a.gender,
+            sc.id as contract_id,
+            sc.contract_date,
+            sc.contract_time,
+            sc.contract_location,
+            sc.contract_notes,
+            DATE_FORMAT(sc.contract_date, '%M %d, %Y') as formatted_contract_date,
+            DATE_FORMAT(sc.contract_time, '%h:%i %p') as formatted_contract_time,
+            CASE 
+                WHEN sc.id IS NULL THEN 'not_scheduled'
+                WHEN sc.contract_date < CURDATE() THEN 'done'
+                ELSE 'scheduled'
+            END as contract_status,
+            CASE 
+                WHEN sc.id IS NULL THEN 'bg-gray-100 text-gray-600 border-gray-200'
+                WHEN sc.contract_date < CURDATE() THEN 'bg-red-50 text-red-600 border-red-200'
+                ELSE 'bg-green-50 text-green-600 border-green-200'
+            END as status_class,
+            CASE 
+                WHEN sc.id IS NULL THEN 'Not Scheduled'
+                WHEN sc.contract_date < CURDATE() THEN 'Done'
+                ELSE 'Scheduled'
+            END as status_text,
+            CONCAT(LEFT(a.full_name, 1), COALESCE(RIGHT(LEFT(a.full_name, INSTR(a.full_name, ' ') + 1), 1), RIGHT(a.full_name, 1))) as initials
+        FROM applicants a
+        LEFT JOIN schedule_contract sc ON a.id = sc.applicant_id
+        $contractWhereClause
+        ORDER BY 
+            CASE 
+                WHEN sc.id IS NULL THEN 1  -- Not scheduled first
+                WHEN sc.contract_date < CURDATE() THEN 2  -- Expired second
+                ELSE 3  -- Scheduled last
+            END,
+            a.created_at DESC
+        LIMIT $contractReadyOffset, $contractReadyPerPage
+    ", $contractParams)->find();
+} catch (\Throwable $th) {
+    $contractReadyApplicants = [];
+    error_log("Error fetching contract ready applicants: " . $th->getMessage());
+}
+
+$totalContractReadyPages = ceil($totalContractReady / $contractReadyPerPage);
+
+// Get distinct departments for filter
+try {
+    $contractReadyDepartments = $db->query("
+        SELECT DISTINCT department 
+        FROM applicants 
+        WHERE department IS NOT NULL AND department != ''
+        ORDER BY department
+    ")->find();
+} catch (\Throwable $th) {
+    $contractReadyDepartments = [];
+    error_log("Error fetching departments: " . $th->getMessage());
+}
 // ============================================
 // TASKS SECTION
 // ============================================
@@ -327,7 +451,7 @@ try {
 // Paginated new hires
 try {
     $paginatedNewHires = $db->query(
-        "SELECT id, employee_number, full_name, position, hired_date, start_date, onboarding_status, department
+        "SELECT id, employee_number, full_name, position, hired_date, start_date, onboarding_status, department, resume, birth_certificate, nbi_clearance, medical_result
         FROM employees WHERE role = 'employee' ORDER BY hired_date DESC LIMIT $nhPerPage OFFSET $nhOffset"
     )->find();
 } catch (\Throwable $th) {
@@ -911,7 +1035,36 @@ try {
                     SELECT MAX(date) 
                     FROM attendance a 
                     WHERE a.employee_id = e.id
-                ) as last_attendance_date
+                ) as last_attendance_date,
+                -- Include attendance records as JSON
+                (
+                    SELECT CONCAT(
+                        '[',
+                        GROUP_CONCAT(
+                            JSON_OBJECT(
+                                'id', a.id,
+                                'date', a.date,
+                                'clock_in', TIME_FORMAT(a.clock_in, '%h:%i %p'),
+                                'clock_out', TIME_FORMAT(a.clock_out, '%h:%i %p'),
+                                'regular_hours', a.regular_hours,
+                                'overtime_hours', a.overtime_hours,
+                                'late_minutes', a.late_minutes,
+                                'late_status', a.late_status
+                            )
+                            ORDER BY a.date DESC
+                            SEPARATOR ','
+                        ),
+                        ']'
+                    )
+                    FROM attendance a 
+                    WHERE a.employee_id = e.id AND a.status = 'clocked_out'
+                ) as attendance_records,
+                -- Get attendance count
+                (
+                    SELECT COUNT(*) 
+                    FROM attendance a 
+                    WHERE a.employee_id = e.id AND a.status = 'clocked_out'
+                ) as total_attendance_days
             FROM employees e
             WHERE e.status = 'Active' OR e.status = 'Probationary'
             ORDER BY e.full_name ASC
@@ -943,7 +1096,40 @@ try {
                     SELECT MAX(date) 
                     FROM attendance a 
                     WHERE a.employee_id = e.id
-                ) as last_attendance_date
+                ) as last_attendance_date,
+                -- Include attendance records for the period as JSON
+                (
+                    SELECT CONCAT(
+                        '[',
+                        GROUP_CONCAT(
+                            JSON_OBJECT(
+                                'id', a.id,
+                                'date', a.date,
+                                'clock_in', TIME_FORMAT(a.clock_in, '%h:%i %p'),
+                                'clock_out', TIME_FORMAT(a.clock_out, '%h:%i %p'),
+                                'regular_hours', a.regular_hours,
+                                'overtime_hours', a.overtime_hours,
+                                'late_minutes', a.late_minutes,
+                                'late_status', a.late_status
+                            )
+                            ORDER BY a.date DESC
+                            SEPARATOR ','
+                        ),
+                        ']'
+                    )
+                    FROM attendance a 
+                    WHERE a.employee_id = e.id 
+                    AND a.date BETWEEN '$dateRangeStart' AND '$dateRangeEnd'
+                    AND a.status = 'clocked_out'
+                ) as attendance_records,
+                -- Get attendance count for the period
+                (
+                    SELECT COUNT(*) 
+                    FROM attendance a 
+                    WHERE a.employee_id = e.id 
+                    AND a.date BETWEEN '$dateRangeStart' AND '$dateRangeEnd'
+                    AND a.status = 'clocked_out'
+                ) as period_attendance_days
             FROM employees e
             WHERE e.status = 'Active' OR e.status = 'Probationary'
             ORDER BY e.full_name ASC
@@ -1134,12 +1320,13 @@ try {
             e.id, 
             e.full_name, 
             e.position,
+            e.role,
             ts.competency_id,
             c.name as competency_name
         FROM employees e
         INNER JOIN training_schedule ts ON e.id = ts.employee_id
         INNER JOIN competencies c ON ts.competency_id = c.id
-        WHERE ts.status = 'Completed' 
+        WHERE e.role = 'employee' 
         AND ts.assessment_status = 'pending'
         ORDER BY e.full_name ASC
     ")->find();
@@ -1611,7 +1798,7 @@ try {
         SELECT AVG(hourly_rate * 8 * 22) as avg_salary
         FROM employees 
         WHERE hourly_rate > 0 AND status IN ('Active', 'Regular', 'Probationary')
-    ")->fetch_one()['avg_salary'] ?? 32450;
+    ")->fetch_one()['avg_salary'] ?? 0;
 
     // Min and max salary
     $salaryRange = $db->query("
@@ -1622,8 +1809,8 @@ try {
         WHERE hourly_rate > 0 AND status IN ('Active', 'Regular', 'Probationary')
     ")->fetch_one();
 
-    $minSalary = $salaryRange['min_salary'] ?? 18000;
-    $maxSalary = $salaryRange['max_salary'] ?? 85000;
+    $minSalary = $salaryRange['min_salary'] ?? 0;
+    $maxSalary = $salaryRange['max_salary'] ?? 0;
 
     // Total compensation budget (sum of all monthly salaries)
     $totalBudget = $db->query("
@@ -1639,14 +1826,14 @@ try {
         WHERE status = 'approved'
     ")->fetch_one()['used_budget'] ?? 0;
 
-    $budgetUtilization = $totalBudget > 0 ? round(($usedBudget / $totalBudget) * 100) : 78;
+    $budgetUtilization = $totalBudget > 0 ? round(($usedBudget / $totalBudget) * 100) : 0;
 
 } catch (\Throwable $th) {
-    $avgSalary = 32450;
-    $minSalary = 18000;
-    $maxSalary = 85000;
-    $totalBudget = 3450000;
-    $budgetUtilization = 78;
+    $avgSalary = 0;
+    $minSalary = 0;
+    $maxSalary = 0;
+    $totalBudget = 0;
+    $budgetUtilization = 0;
     error_log("Error fetching compensation stats: " . $th->getMessage());
 }
 
@@ -3274,9 +3461,8 @@ function formatHmoCurrency($amount)
 {
     return '₱' . number_format($amount, 0);
 }
-
 // ============================================
-// PAYROLL MANAGEMENT SECTION
+// PAYROLL MANAGEMENT SECTION WITH CLAIMS
 // ============================================
 
 // Get current date info
@@ -3318,7 +3504,7 @@ $payrollOffset = ($payrollPage - 1) * $payrollPerPage;
 $payrollStatusFilter = isset($_GET['payroll_status']) ? $_GET['payroll_status'] : '';
 $payrollDepartmentFilter = isset($_GET['payroll_department']) ? $_GET['payroll_department'] : '';
 
-// Get statutory deductions (these are fixed per employee)
+// Get statutory deductions
 try {
     $payrollStatutoryDeductions = $db->query("
         SELECT deduction_name, deduction_amount
@@ -3331,7 +3517,6 @@ try {
         $payrollTotalStatutory += $deduction['deduction_amount'];
     }
 } catch (\Throwable $th) {
-    // Default values if table doesn't exist
     $payrollStatutoryDeductions = [
         ['deduction_name' => 'SSS', 'deduction_amount' => 450],
         ['deduction_name' => 'PhilHealth', 'deduction_amount' => 250],
@@ -3366,10 +3551,14 @@ if (!empty($payrollDepartmentFilter)) {
 $payrollWhereClause = !empty($payrollWhereConditions) ? "WHERE " . implode(" AND ", $payrollWhereConditions) : "";
 
 // ============================================
-// PAYROLL STATS
+// PAYROLL STATS WITH CLAIMS
 // ============================================
 
-// Get all active employees for payroll
+// ============================================
+// PAYROLL STATS WITH CLAIMS AND SUMMARY STATUS
+// ============================================
+
+// Get all active employees for payroll with their payroll summary status
 $payrollBaseSql = "
     SELECT 
         e.id,
@@ -3377,6 +3566,7 @@ $payrollBaseSql = "
         e.position,
         e.department,
         e.hourly_rate,
+        -- Attendance totals
         COALESCE((
             SELECT SUM(regular_hours) 
             FROM attendance 
@@ -3390,13 +3580,35 @@ $payrollBaseSql = "
             WHERE employee_id = e.id 
             AND date BETWEEN ? AND ?
             AND status = 'clocked_out'
-        ), 0) as total_overtime_hours
+        ), 0) as total_overtime_hours,
+        -- Claims totals
+        COALESCE((
+            SELECT SUM(amount) 
+            FROM expense_claims 
+            WHERE employee_id = e.id 
+            AND status = 'Approved'
+            AND approved_at BETWEEN ? AND ?
+        ), 0) as total_claims_amount,
+        (
+            SELECT COUNT(*) 
+            FROM expense_claims 
+            WHERE employee_id = e.id 
+            AND status = 'Approved'
+            AND approved_at BETWEEN ? AND ?
+        ) as claims_count,
+        -- Payroll summary status (if exists)
+        ps.id as payroll_summary_id,
+        ps.status as payroll_status,
+        ps.generated_at as payroll_processed_date
     FROM employees e
+    LEFT JOIN payroll_summary ps ON e.id = ps.employee_id 
+        AND ps.period_start = ? 
+        AND ps.period_end = ?
     WHERE e.status IN ('Active', 'Regular', 'Probationary')
 ";
 
 if (!empty($payrollWhereClause)) {
-    $payrollBaseSql .= " AND " . substr($payrollWhereClause, 6); // Remove "WHERE " from the clause
+    $payrollBaseSql .= " AND " . substr($payrollWhereClause, 6);
 }
 
 $payrollBaseSql .= " ORDER BY e.full_name";
@@ -3404,7 +3616,21 @@ $payrollBaseSql .= " ORDER BY e.full_name";
 try {
     $payrollAllEmployees = $db->query(
         $payrollBaseSql,
-        [$payrollPeriodStart, $payrollPeriodEnd, $payrollPeriodStart, $payrollPeriodEnd]
+        [
+            // Attendance hours params (4)
+            $payrollPeriodStart,
+            $payrollPeriodEnd,
+            $payrollPeriodStart,
+            $payrollPeriodEnd,
+            // Claims params (4)
+            $payrollPeriodStart,
+            $payrollPeriodEnd,
+            $payrollPeriodStart,
+            $payrollPeriodEnd,
+            // Payroll summary join params (2)
+            $payrollPeriodStart,
+            $payrollPeriodEnd
+        ]
     )->find();
 } catch (\Throwable $th) {
     $payrollAllEmployees = [];
@@ -3414,6 +3640,7 @@ try {
 // Calculate payroll totals
 $payrollTotalGross = 0;
 $payrollTotalStatutoryDeductions = 0;
+$payrollTotalClaims = 0;
 $payrollTotalNet = 0;
 $payrollProcessedCount = 0;
 $payrollPendingCount = 0;
@@ -3422,19 +3649,26 @@ $payrollEmployees = [];
 foreach ($payrollAllEmployees as $emp) {
     // Calculate gross pay (regular + overtime)
     $regularPay = $emp['total_regular_hours'] * ($emp['hourly_rate'] ?: 0);
-    $overtimePay = $emp['total_overtime_hours'] * ($emp['hourly_rate'] ?: 0) * 1.25; // 25% overtime premium
+    $overtimePay = $emp['total_overtime_hours'] * ($emp['hourly_rate'] ?: 0) * 1.25;
     $grossPay = $regularPay + $overtimePay;
 
     // Statutory deductions are fixed per employee
     $statutoryDeductions = $payrollTotalStatutory;
 
-    // Net pay is gross minus statutory deductions only (no benefit deductions or late penalties)
-    $netPay = max(0, $grossPay - $statutoryDeductions);
+    // Get approved claims for this period
+    $claimsAmount = $emp['total_claims_amount'] ?? 0;
 
-    // Determine status (processed if has attendance)
-    $status = $emp['total_regular_hours'] > 0 ? 'Processed' : 'Pending';
+    // Net pay is gross minus statutory deductions PLUS approved claims
+    $netPay = max(0, $grossPay - $statutoryDeductions + $claimsAmount);
 
-    if ($status == 'Processed') {
+    // Determine status: Use payroll_summary status if exists, otherwise calculate
+    if (!empty($emp['payroll_status'])) {
+        $status = $emp['payroll_status'];
+    } else {
+        $status = ($emp['total_regular_hours'] > 0 || $claimsAmount > 0) ? 'Pending' : 'Pending';
+    }
+
+    if ($status == 'Processed' || $status == 'Processing') {
         $payrollProcessedCount++;
     } else {
         $payrollPendingCount++;
@@ -3442,21 +3676,31 @@ foreach ($payrollAllEmployees as $emp) {
 
     $payrollTotalGross += $grossPay;
     $payrollTotalStatutoryDeductions += $statutoryDeductions;
+    $payrollTotalClaims += $claimsAmount;
     $payrollTotalNet += $netPay;
 
     $emp['regular_pay'] = $regularPay;
     $emp['overtime_pay'] = $overtimePay;
     $emp['gross_pay'] = $grossPay;
     $emp['statutory_deductions'] = $statutoryDeductions;
-    $emp['total_deductions'] = $statutoryDeductions; // Only statutory deductions
+    $emp['total_deductions'] = $statutoryDeductions;
+    $emp['claims_amount'] = $claimsAmount;
+    $emp['claims_count'] = $emp['claims_count'] ?? 0;
     $emp['net_pay'] = $netPay;
+    $emp['net_pay_without_claims'] = max(0, $grossPay - $statutoryDeductions);
     $emp['status'] = $status;
+    $emp['payroll_summary_id'] = $emp['payroll_summary_id'] ?? null;
+    $emp['payroll_processed_date'] = $emp['payroll_processed_date'] ?? null;
     $emp['initials'] = getInitials($emp['full_name']);
 
     $payrollEmployees[] = $emp;
 }
 
 $payrollTotalEmployees = count($payrollEmployees);
+
+// ============================================
+// FILTER EMPLOYEES BASED ON STATUS (USING DATABASE STATUS)
+// ============================================
 
 // Filter employees based on status if needed
 if (!empty($payrollStatusFilter)) {
@@ -3485,21 +3729,21 @@ $payrollTotalPages = ceil($payrollTotalFiltered / $payrollPerPage);
 // Calculate footer totals for displayed page
 $payrollPageRegularHours = 0;
 $payrollPageOvertimeHours = 0;
-$payrollPageAverageNet = 0;
+$payrollPageClaimsTotal = 0;
+$payrollPageNetTotal = 0;
 
 foreach ($payrollPaginatedEmployees as $emp) {
     $payrollPageRegularHours += $emp['total_regular_hours'];
     $payrollPageOvertimeHours += $emp['total_overtime_hours'];
-    $payrollPageAverageNet += $emp['net_pay'];
+    $payrollPageClaimsTotal += $emp['claims_amount'];
+    $payrollPageNetTotal += $emp['net_pay'];
 }
-$payrollPageAverageNet = $payrollPageAverageNet > 0 ? round($payrollPageAverageNet / count($payrollPaginatedEmployees)) : 0;
-
+$payrollPageAverageNet = $payrollPageNetTotal > 0 ? round($payrollPageNetTotal / count($payrollPaginatedEmployees)) : 0;
 // Format currency function
 function formatPayrollCurrency($amount)
 {
     return '₱' . number_format($amount, 2);
 }
-
 // ============================================
 // EMPLOYEE SCHEDULES SECTION
 // ============================================
@@ -3656,85 +3900,43 @@ try {
     error_log("Error fetching schedule departments: " . $th->getMessage());
 }
 
-// ============================================
-// RECENT UPLOADS HISTORY
-// ============================================
-
-// Get recent uploads from attendance_uploads table
+// Get unique schedule dates with employee counts
 try {
-    $recentUploads = $db->query("
+    $bundledSchedules = $db->query("
         SELECT 
-            id,
-            filename,
-            file_size,
-            records_processed,
-            shift_updates,
-            errors,
-            uploaded_by,
-            department,
-            created_at,
-            DATE_FORMAT(created_at, '%b %e, %Y') as formatted_date,
-            DATE_FORMAT(created_at, '%h:%i %p') as formatted_time,
-            CONCAT(
-                DATE_FORMAT(created_at, '%b %e, %Y'), ' • ', 
-                records_processed, ' records'
-            ) as description
-        FROM attendance_uploads 
-        ORDER BY created_at DESC 
-        LIMIT 5
+            es.schedule_date,
+            DATE_FORMAT(es.schedule_date, '%b %e, %Y') as formatted_date,
+            DATE_FORMAT(es.schedule_date, '%W') as day_of_week,
+            COUNT(DISTINCT es.employee_id) as employee_count,
+            COUNT(es.id) as total_shifts,
+            GROUP_CONCAT(DISTINCT s.shift_name SEPARATOR ', ') as shift_types,
+            MIN(es.time_in) as earliest_time_in,
+            MAX(es.time_out) as latest_time_out,
+            CASE 
+                WHEN es.schedule_date = CURDATE() THEN 'Today'
+                WHEN es.schedule_date < CURDATE() THEN 'Past'
+                ELSE 'Upcoming'
+            END as status
+        FROM employee_schedules es
+        LEFT JOIN shifts s ON es.shift_id = s.id
+        GROUP BY es.schedule_date
+        ORDER BY es.schedule_date DESC
+        LIMIT 10
     ")->find();
 } catch (\Throwable $th) {
-    // If table doesn't exist or error, create sample data for display
-    $recentUploads = [
-        [
-            'id' => 1,
-            'filename' => 'schedule-march-2026.xlsx',
-            'formatted_date' => 'Mar 6, 2026',
-            'records_processed' => 45,
-            'description' => 'Mar 6, 2026 • 45 records'
-        ],
-        [
-            'id' => 2,
-            'filename' => 'attendance-march-1-15.xlsx',
-            'formatted_date' => 'Mar 15, 2025',
-            'records_processed' => 156,
-            'description' => 'Mar 15, 2025 • 156 records'
-        ],
-        [
-            'id' => 3,
-            'filename' => 'attendance-feb-16-28.xlsx',
-            'formatted_date' => 'Feb 28, 2025',
-            'records_processed' => 142,
-            'description' => 'Feb 28, 2025 • 142 records'
-        ]
-    ];
-    error_log("Error fetching recent uploads: " . $th->getMessage());
+    $bundledSchedules = [];
+    error_log("Error fetching bundled schedules: " . $th->getMessage());
 }
 
-// Get upload statistics
+// Get total unique dates count
 try {
-    $uploadStats = $db->query("
-        SELECT 
-            COUNT(*) as total_uploads,
-            SUM(records_processed) as total_records,
-            MAX(created_at) as last_upload_date
-        FROM attendance_uploads
-    ")->fetch_one();
-
-    $totalUploads = $uploadStats['total_uploads'] ?? 0;
-    $totalRecordsUploaded = $uploadStats['total_records'] ?? 0;
-    $lastUploadDate = $uploadStats['last_upload_date'] ?? null;
-
-    if ($lastUploadDate) {
-        $lastUploadFormatted = date('M j, Y', strtotime($lastUploadDate));
-    } else {
-        $lastUploadFormatted = 'Never';
-    }
+    $totalScheduleDates = $db->query("
+        SELECT COUNT(DISTINCT schedule_date) as count 
+        FROM employee_schedules
+    ")->fetch_one()['count'] ?? 0;
 } catch (\Throwable $th) {
-    $totalUploads = 3;
-    $totalRecordsUploaded = 343;
-    $lastUploadFormatted = 'Mar 6, 2026';
-    error_log("Error fetching upload stats: " . $th->getMessage());
+    $totalScheduleDates = 0;
+    error_log("Error counting schedule dates: " . $th->getMessage());
 }
 
 // ============================================
@@ -4224,6 +4426,206 @@ try {
     $topPerformers = [];
     error_log("Error fetching top performers: " . $th->getMessage());
 }
+function getEmployeeCompleteness($employee)
+{
+    $requiredDocuments = [
+        'resume' => 'Resume',
+        'nbi_clearance' => 'NBI Clearance',
+        'medical_result' => 'Medical Result',
+        'birth_certificate' => 'Birth Certificate',
+    ];
+
+    $missingItems = [];
+    $missingCount = 0;
+
+    // Check documents with better null/empty checking
+    foreach ($requiredDocuments as $doc => $label) {
+        // Check if the key exists and is not empty (not null, not empty string)
+        $value = $employee[$doc] ?? null;
+
+        // Debug: Log what we're finding
+        error_log("Checking $doc for employee {$employee['id']}: " . ($value ?: 'EMPTY'));
+
+        if ($value === null || $value === '' || trim($value) === '') {
+            $missingItems[] = $label;
+            $missingCount++;
+        }
+    }
+
+    return [
+        'is_complete' => ($missingCount === 0),
+        'missing_count' => $missingCount,
+        'missing_items' => $missingItems,
+        'status' => ($missingCount === 0) ? 'Complete' : 'Incomplete',
+        'status_class' => ($missingCount === 0)
+            ? 'bg-green-100 text-green-800 border-green-200'
+            : 'bg-red-100 text-red-800 border-red-200',
+        'icon' => ($missingCount === 0) ? 'fa-check-circle' : 'fa-exclamation-circle',
+        'icon_color' => ($missingCount === 0) ? 'text-green-500' : 'text-red-500',
+        'message' => ($missingCount === 0)
+            ? 'All requirements complete'
+            : $missingCount . ' requirement' . ($missingCount > 1 ? 's' : '') . ' missing'
+    ];
+}
+
+// ============================================
+// JOB REQUISITIONS SECTION
+// ============================================
+
+// Pagination for requisitions
+$requisitionPage = isset($_GET['requisition_page']) ? max(1, (int) $_GET['requisition_page']) : 1;
+$requisitionPerPage = 5;
+$requisitionOffset = ($requisitionPage - 1) * $requisitionPerPage;
+
+// Filter parameters
+$requisitionDeptFilter = isset($_GET['requisition_dept']) ? $_GET['requisition_dept'] : '';
+$requisitionPriorityFilter = isset($_GET['requisition_priority']) ? $_GET['requisition_priority'] : '';
+$requisitionStatusFilter = isset($_GET['requisition_status']) ? $_GET['requisition_status'] : '';
+$requisitionSearch = isset($_GET['requisition_search']) ? $_GET['requisition_search'] : '';
+
+// Build WHERE clause for filters
+$requisitionWhereConditions = [];
+$requisitionParams = [];
+
+if (!empty($requisitionSearch)) {
+    $requisitionWhereConditions[] = "(job_title LIKE ? OR department LIKE ? OR requested_by LIKE ?)";
+    $searchParam = "%$requisitionSearch%";
+    $requisitionParams[] = $searchParam;
+    $requisitionParams[] = $searchParam;
+    $requisitionParams[] = $searchParam;
+}
+
+if (!empty($requisitionDeptFilter)) {
+    $requisitionWhereConditions[] = "department = ?";
+    $requisitionParams[] = $requisitionDeptFilter;
+}
+
+if (!empty($requisitionPriorityFilter)) {
+    $requisitionWhereConditions[] = "priority = ?";
+    $requisitionParams[] = $requisitionPriorityFilter;
+}
+
+if (!empty($requisitionStatusFilter)) {
+    $requisitionWhereConditions[] = "status = ?";
+    $requisitionParams[] = $requisitionStatusFilter;
+}
+
+$requisitionWhereClause = !empty($requisitionWhereConditions)
+    ? "WHERE " . implode(" AND ", $requisitionWhereConditions)
+    : "";
+
+// Get distinct departments for filter dropdown
+try {
+    $requisitionDepartments = $db->query("
+        SELECT DISTINCT department 
+        FROM job_requisitions 
+        WHERE department IS NOT NULL AND department != ''
+        ORDER BY department
+    ")->find();
+} catch (\Throwable $th) {
+    $requisitionDepartments = [];
+    error_log("Error fetching requisition departments: " . $th->getMessage());
+}
+
+// ============================================
+// REQUISITION STATS
+// ============================================
+
+// Get total counts for stats
+try {
+    $requisitionStats = $db->query("
+        SELECT 
+            COUNT(*) as total,
+            SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+            SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved,
+            SUM(CASE WHEN status = 'declined' THEN 1 ELSE 0 END) as declined
+        FROM job_requisitions
+    ")->fetch_one();
+
+    $requisitionTotal = $requisitionStats['total'] ?? 0;
+    $requisitionPending = $requisitionStats['pending'] ?? 0;
+    $requisitionApproved = $requisitionStats['approved'] ?? 0;
+    $requisitionDeclined = $requisitionStats['declined'] ?? 0;
+} catch (\Throwable $th) {
+    $requisitionTotal = 0;
+    $requisitionPending = 0;
+    $requisitionApproved = 0;
+    $requisitionDeclined = 0;
+    error_log("Error fetching requisition stats: " . $th->getMessage());
+}
+
+// Get total count for pagination
+try {
+    $requisitionTotalCount = $db->query("
+        SELECT COUNT(*) as count 
+        FROM job_requisitions
+        $requisitionWhereClause
+    ", $requisitionParams)->fetch_one()['count'] ?? 0;
+} catch (\Throwable $th) {
+    $requisitionTotalCount = 0;
+    error_log("Error counting requisitions: " . $th->getMessage());
+}
+
+// Get paginated requisitions
+try {
+    $requisitions = $db->query("
+        SELECT 
+            *,
+            DATE_FORMAT(needed_by, '%M %e, %Y') as formatted_needed_by,
+            DATE_FORMAT(created_at, '%M %e, %Y') as formatted_created,
+            CASE 
+                WHEN priority = 'high' THEN 'bg-red-50 text-red-700 border-red-200'
+                WHEN priority = 'medium' THEN 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                WHEN priority = 'low' THEN 'bg-green-50 text-green-700 border-green-200'
+                ELSE 'bg-gray-50 text-gray-700 border-gray-200'
+            END as priority_class,
+            CASE 
+                WHEN status = 'pending' THEN 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                WHEN status = 'approved' THEN 'bg-green-50 text-green-700 border-green-200'
+                WHEN status = 'declined' THEN 'bg-red-50 text-red-700 border-red-200'
+                ELSE 'bg-gray-50 text-gray-700 border-gray-200'
+            END as status_class
+        FROM job_requisitions
+        $requisitionWhereClause
+        ORDER BY 
+            CASE priority
+                WHEN 'high' THEN 1
+                WHEN 'medium' THEN 2
+                WHEN 'low' THEN 3
+            END,
+            needed_by ASC,
+            created_at DESC
+        LIMIT $requisitionPerPage OFFSET $requisitionOffset
+    ", $requisitionParams)->find();
+} catch (\Throwable $th) {
+    $requisitions = [];
+    error_log("Error fetching requisitions: " . $th->getMessage());
+}
+
+$requisitionTotalPages = ceil($requisitionTotalCount / $requisitionPerPage);
+
+// Get icon based on department
+function getRequisitionIcon($department)
+{
+    $dept = strtolower($department ?? '');
+    if (strpos($dept, 'kitchen') !== false || strpos($dept, 'cook') !== false || strpos($dept, 'chef') !== false) {
+        return ['icon' => 'fa-utensils', 'color' => 'orange'];
+    } elseif (strpos($dept, 'housekeeping') !== false || strpos($dept, 'clean') !== false) {
+        return ['icon' => 'fa-broom', 'color' => 'blue'];
+    } elseif (strpos($dept, 'front') !== false || strpos($dept, 'desk') !== false) {
+        return ['icon' => 'fa-concierge-bell', 'color' => 'purple'];
+    } elseif (strpos($dept, 'maintenance') !== false) {
+        return ['icon' => 'fa-tools', 'color' => 'gray'];
+    } elseif (strpos($dept, 'sales') !== false || strpos($dept, 'marketing') !== false) {
+        return ['icon' => 'fa-chart-line', 'color' => 'green'];
+    } elseif (strpos($dept, 'restaurant') !== false) {
+        return ['icon' => 'fa-utensils', 'color' => 'red'];
+    } else {
+        return ['icon' => 'fa-briefcase', 'color' => 'blue'];
+    }
+}
+
+
 
 view_path('main', 'index', [
     // Job Postings
@@ -4246,6 +4648,22 @@ view_path('main', 'index', [
     'availableMentors' => $availableMentors,
     'topPerformers' => $topPerformers,
 
+    // REQUISITION VARIABLES
+    'requisitionPage' => $requisitionPage,
+    'requisitionPerPage' => $requisitionPerPage,
+    'requisitionTotalPages' => $requisitionTotalPages,
+    'requisitionTotalCount' => $requisitionTotalCount,
+    'requisitionTotal' => $requisitionTotal,
+    'requisitionPending' => $requisitionPending,
+    'requisitionApproved' => $requisitionApproved,
+    'requisitionDeclined' => $requisitionDeclined,
+    'requisitionDeptFilter' => $requisitionDeptFilter,
+    'requisitionPriorityFilter' => $requisitionPriorityFilter,
+    'requisitionStatusFilter' => $requisitionStatusFilter,
+    'requisitionSearch' => $requisitionSearch,
+    'requisitionDepartments' => $requisitionDepartments,
+    'requisitions' => $requisitions,
+
     // Applicants
     'applicants' => $allApplicants,
     'recentApplicants' => $recentApplicants,
@@ -4253,6 +4671,15 @@ view_path('main', 'index', [
     // Employees
     'hiredEmployees' => $hiredEmployees,
     'employeesForBenefits' => $employeesForBenefits,
+    // CONTRACT READY VARIABLES
+    'contractReadyPage' => $contractReadyPage,
+    'contractReadyPerPage' => $contractReadyPerPage,
+    'totalContractReadyPages' => $totalContractReadyPages,
+    'totalContractReady' => $totalContractReady,
+    'contractReadyApplicants' => $contractReadyApplicants,
+    'contractReadySearch' => $contractReadySearch,
+    'contractReadyDept' => $contractReadyDept,
+    'contractReadyDepartments' => $contractReadyDepartments,
 
     // Tasks
     'tasks' => $tasks,
@@ -4530,6 +4957,7 @@ view_path('main', 'index', [
     'payrollPageRegularHours' => $payrollPageRegularHours,
     'payrollPageOvertimeHours' => $payrollPageOvertimeHours,
     'payrollPageAverageNet' => $payrollPageAverageNet,
+    'payrollPageClaimsTotal' => $payrollPageClaimsTotal,
 
     // schedule
     'schedulePage' => $schedulePage,
@@ -4545,10 +4973,9 @@ view_path('main', 'index', [
     'schedulesThisWeek' => $schedulesThisWeek,
     'schedulesUpcoming' => $schedulesUpcoming,
     'schedulesPast' => $schedulesPast,
-    'recentUploads' => $recentUploads,
-    'totalUploads' => $totalUploads,
-    'totalRecordsUploaded' => $totalRecordsUploaded,
-    'lastUploadFormatted' => $lastUploadFormatted,
+    'bundledSchedules' => $bundledSchedules,
+    'totalScheduleDates' => $totalScheduleDates,
+
     'shiftSwapRequests' => $shiftSwapRequests,
     'shiftSwapPendingCount' => $shiftSwapPendingCount,
 ]);

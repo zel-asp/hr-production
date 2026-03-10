@@ -68,15 +68,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const select = row.querySelector('.status-select');
             const status = select.value;
 
-            // Get start date if status is Hired
+            // Get dates based on status
             let startDate = null;
+            let interviewDate = null;
+
             if (status === 'Hired') {
                 const startDateInput = row.querySelector('.start-date-input');
                 if (startDateInput) {
                     startDate = startDateInput.value;
-                    // Validate start date is provided
                     if (!startDate) {
                         alert('Please select a start date for hired applicant');
+                        return;
+                    }
+                }
+            } else if (status === 'Interview') {
+                const interviewDateInput = row.querySelector('.interview-date-input');
+                if (interviewDateInput) {
+                    interviewDate = interviewDateInput.value;
+                    if (!interviewDate) {
+                        alert('Please select an interview date');
                         return;
                     }
                 }
@@ -90,6 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         id,
                         status,
                         start_date: startDate,
+                        interview_date: interviewDate,
                         csrf_token: csrf
                     })
                 });
@@ -128,11 +139,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const id = e.target.dataset.id;
             const row = document.querySelector(`.applicant-row[data-id="${id}"]`);
             const startDateContainer = row.querySelector('.start-date-container');
+            const interviewDateContainer = row.querySelector('.interview-date-container');
 
+            // Hide both containers first
+            startDateContainer.classList.add('hidden');
+            interviewDateContainer.classList.add('hidden');
+
+            // Show appropriate container based on status
             if (e.target.value === 'Hired') {
                 startDateContainer.classList.remove('hidden');
-            } else {
-                startDateContainer.classList.add('hidden');
+            } else if (e.target.value === 'Interview') {
+                interviewDateContainer.classList.remove('hidden');
             }
         }
     });
