@@ -1,27 +1,27 @@
 
 TASK: left behind
-1. fix the design in recruitment
-2. //optional add deactivate btn in onboarding section
+1. fix the design in recruitment(done)
+2. //optional add deactivate btn in onboarding section(removed)
 3. add remove btn in each task in learning mamanagement and make it functional (done)
 4. add functionality in approve and deny btn in leave section (done)
-5. seetings in ess 
 6. payslip
-7. hr announcement
+7. hr announcement(done)
 8. add functionality to the xmark in request leave ess (done)
 9. make the clocked in indicator dynamic (done)
-10. add logic on how hr account will add
-11. add functionality to the hr login
-12. add shift 
+10. add logic on how hr account will add(done)
+11. add functionality to the hr login(done)
+12. add shift (done)
 13. add hourly rate, and the shift in applicant
 14. fix the x btn in Onboarding Progress (done)
-15. add status in every controller(see in leaveDelete.php)
+22. update in viewEmployeeDetails - already have contoller (updateEmployeeInfo) (done)
+
+15. add status in every controller(see in leaveDelete.php) - http_response_code(403);
 16. add error_logs table in db
 17. update controllers to add error logs
+
 18. view and approve in timesheet
-19.time & attendance manual entry
 20. notify and view gap in competency
 21. compensation review note btn
-22. update in viewEmployeeDetails - already have contoller (updateEmployeeInfo)
 23. add shift and hourly rate
 24. payroll review, process 
 

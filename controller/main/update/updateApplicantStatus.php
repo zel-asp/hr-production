@@ -6,9 +6,11 @@ header('Content-Type: application/json');
 $config = require base_path('config/config.php');
 $db = new Database($config['database']);
 
+// Initialize session arrays
+$_SESSION['error'] ??= [];
+$_SESSION['success'] ??= [];
+
 try {
-
-
     $input = json_decode(file_get_contents('php://input'), true);
     if (!$input)
         throw new Exception("Invalid JSON");
@@ -16,13 +18,14 @@ try {
     $id = (int) ($input['id'] ?? 0);
     $status = ucfirst(strtolower(trim($input['status'] ?? '')));
     $startDate = $input['start_date'] ?? null;
+    $interviewDate = $input['interview_date'] ?? null; // Add this line
     $csrf = $input['csrf_token'] ?? '';
 
     if (!hash_equals($_SESSION['csrf_token'] ?? '', $csrf)) {
         throw new Exception("Invalid CSRF token");
     }
 
-    $validStatuses = ['New', 'Review', 'Interview', 'Rejected', 'Hired'];
+    $validStatuses = ['New', 'Review', 'Interview', 'Rejected', 'Contract', 'Hired'];
     if (!in_array($status, $validStatuses))
         throw new Exception("Invalid status");
 
@@ -46,7 +49,8 @@ try {
             UPDATE applicants 
             SET status = :status,
                 hired_date = IF(hired_date IS NULL, NOW(), hired_date),
-                start_date = :start_date
+                start_date = :start_date,
+                interview_date = NULL
             WHERE id = :id
         ", [
             'status' => $status,
@@ -87,13 +91,39 @@ try {
         $_SESSION['success'][] = "Applicant successfully marked as Hired with start date {$startDate}.";
         $message = "Applicant successfully marked as Hired with start date {$startDate}.";
 
+    } elseif ($status === 'Interview') {
+        // Validate interview date is provided
+        if (empty($interviewDate)) {
+            throw new Exception("Interview date is required");
+        }
+
+        $db->query("
+            UPDATE applicants 
+            SET status = :status,
+                interview_date = :interview_date,
+                hired_date = NULL,
+                start_date = NULL
+            WHERE id = :id
+        ", [
+            'status' => $status,
+            'interview_date' => $interviewDate,
+            'id' => $id
+        ]);
+
+        // Remove from employees if exists (in case they were previously hired)
+        $db->query("DELETE FROM employees WHERE applicant_id = :id", ['id' => $id]);
+
+        $_SESSION['success'][] = "Applicant status updated to {$status} with interview on {$interviewDate}.";
+        $message = "Applicant status updated to {$status} with interview on {$interviewDate}.";
+
     } else {
-        // Update applicant status and reset hired_date and start_date
+        // Update applicant status and reset all date fields
         $db->query("
             UPDATE applicants 
             SET status = :status,
                 hired_date = NULL,
-                start_date = NULL
+                start_date = NULL,
+                interview_date = NULL
             WHERE id = :id
         ", ['status' => $status, 'id' => $id]);
 
