@@ -1,7 +1,6 @@
 <?php
 
 use Core\Database;
-
 $config = require base_path('config/config.php');
 $db = new Database($config['database']);
 
@@ -13,10 +12,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['applicant_id'])) {
     try {
 
         $applicantId = $_POST['applicant_id'];
-
-        // ==========================
-        // 1️⃣ Get employee from DB
-        // ==========================
         $employee = $db->query(
             "SELECT employee_number, full_name, email,department 
              FROM employees 
@@ -36,20 +31,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['applicant_id'])) {
         $fullName = $employee['full_name'];
         $department = $employee['department'];
 
-        // ==========================
-        // 2️⃣ Generate username
-        // ==========================
         $username = explode('@', $email)[0];
 
-        // ==========================
-        // 3️⃣ Use employee number as password
-        // ==========================
         $plainPassword = $employeeNumber; // EMP-031
         $hashedPassword = password_hash($plainPassword, PASSWORD_DEFAULT);
 
-        // ==========================
-        // 4️⃣ Check if account exists
-        // ==========================
         $existing = $db->query(
             "SELECT id FROM employee_accounts WHERE applicant_id = ?",
             [$applicantId]
@@ -61,9 +47,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['applicant_id'])) {
             exit;
         }
 
-        // ==========================
-        // 5️⃣ Insert account
-        // ==========================
         $db->query(
             "INSERT INTO employee_accounts 
              (applicant_id, employee_id, username, password, email,department) 
@@ -71,9 +54,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['applicant_id'])) {
             [$applicantId, $employeeNumber, $username, $hashedPassword, $email, $department]
         );
 
-        // ==========================
-        // 6️⃣ Success message
-        // ==========================
         $_SESSION['success'][] = 'Employee account generated successfully.';
         $_SESSION['success'][] = "Email: $email";
         $_SESSION['success'][] = "Temporary Password: $plainPassword";
