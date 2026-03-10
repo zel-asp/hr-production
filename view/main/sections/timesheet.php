@@ -5,12 +5,12 @@
             <h2 class="text-2xl font-semibold text-gray-800">Timesheet Management</h2>
             <p class="text-gray-500 text-sm mt-1">Review and approve employee timesheets</p>
         </div>
-        <div class="flex gap-2">
+        <!-- <div class="flex gap-2">
             <button class="btn-primary" onclick="approveAllTimesheets()">
                 <i class="fas fa-check-circle"></i>
                 Approve All
             </button>
-        </div>
+        </div> -->
     </div>
 
     <!-- Period Summary Cards -->
@@ -200,9 +200,8 @@
                                     </td>
                                     <td class="py-3 px-4">
                                         <div class="flex items-center justify-center gap-3">
-                                            <button
-                                                class="text-sm text-gray-500 hover:text-gray-700 bg-gray-50 hover:bg-gray-100 px-2.5 py-1 rounded-lg transition-colors duration-200 flex items-center gap-1"
-                                                onclick="viewTimesheet(<?= $timesheet['employee_id'] ?>, '<?= htmlspecialchars($timesheet['full_name']) ?>')">
+                                            <button onclick="openModal('timesheetModal<?= $timesheet['employee_id'] ?>')"
+                                                class="text-sm text-gray-500 hover:text-gray-700 bg-gray-50 hover:bg-gray-100 px-2.5 py-1 rounded-lg transition-colors duration-200 flex items-center gap-1">
                                                 <i class="fas fa-eye text-xs"></i>
                                                 View
                                             </button>
@@ -285,3 +284,227 @@
         </div>
     </div>
 </div>
+
+<!-- Timesheet Modals (one for each employee) -->
+<?php if (!empty($timesheets)): ?>
+    <?php foreach ($timesheets as $timesheet):
+        $totalHours = $timesheet['regular_hours'] + $timesheet['overtime_hours'];
+        $modalId = 'timesheetModal' . $timesheet['employee_id'];
+
+        // Decode attendance records
+        $attendanceRecords = [];
+        if (!empty($timesheet['attendance_records'])) {
+            $attendanceRecords = json_decode($timesheet['attendance_records'], true);
+        }
+
+        // Determine status
+        if ($totalHours == 0) {
+            $status = 'No Hours';
+            $statusClass = 'bg-gray-100 text-gray-600 border border-gray-200';
+        } elseif ($timesheet['timesheet_status'] == 'Approved') {
+            $status = 'Approved';
+            $statusClass = 'bg-green-50 text-green-700 border border-green-200';
+        } else {
+            $status = 'Pending';
+            $statusClass = 'bg-yellow-50 text-yellow-700 border border-yellow-200';
+        }
+        ?>
+        <div id="<?= $modalId ?>" class="modal fixed inset-0 bg-black/50 flex items-center justify-center hidden z-50">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+                <!-- Modal Header -->
+                <div class="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                            <span
+                                class="text-blue-600 font-semibold text-lg"><?= strtoupper(substr($timesheet['full_name'], 0, 1)) ?></span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800">Timesheet Details</h3>
+                            <p class="text-sm text-gray-500"><?= htmlspecialchars($timesheet['full_name']) ?> •
+                                <?= htmlspecialchars($timesheet['position'] ?? '') ?></p>
+                        </div>
+                    </div>
+                    <button onclick="closeModal('<?= $modalId ?>')" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+
+                <!-- Modal Body -->
+                <div class="p-6">
+                    <!-- Period Summary -->
+                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-5 mb-6 border border-blue-100">
+                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                            <div>
+                                <p class="text-xs text-blue-600 uppercase tracking-wider">Period</p>
+                                <p class="text-base font-semibold text-gray-800"><?= $filterLabel ?></p>
+                                <?php if ($timesheetFilter !== 'all'): ?>
+                                    <p class="text-xs text-blue-500"><?= date('M j', strtotime($dateRangeStart)) ?> -
+                                        <?= date('M j, Y', strtotime($dateRangeEnd)) ?></p>
+                                <?php else: ?>
+                                    <p class="text-xs text-blue-500">All time</p>
+                                <?php endif; ?>
+                            </div>
+                            <div class="bg-white rounded-lg p-3">
+                                <p class="text-xs text-gray-500">Regular Hours</p>
+                                <p class="text-xl font-bold text-gray-800"><?= number_format($timesheet['regular_hours'], 1) ?>
+                                </p>
+                            </div>
+                            <div class="bg-white rounded-lg p-3">
+                                <p class="text-xs text-gray-500">Overtime Hours</p>
+                                <p class="text-xl font-bold text-gray-800"><?= number_format($timesheet['overtime_hours'], 1) ?>
+                                </p>
+                            </div>
+                            <div class="bg-white rounded-lg p-3">
+                                <p class="text-xs text-gray-500">Total Hours</p>
+                                <p class="text-xl font-bold text-gray-800"><?= number_format($totalHours, 1) ?></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Employee Info Card -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                        <div class="bg-white border border-gray-200 rounded-lg p-4">
+                            <p class="text-xs text-gray-400 mb-1">Department</p>
+                            <p class="text-base font-medium text-gray-800">
+                                <?= htmlspecialchars($timesheet['department'] ?? 'N/A') ?></p>
+                        </div>
+                        <div class="bg-white border border-gray-200 rounded-lg p-4">
+                            <p class="text-xs text-gray-400 mb-1">Hourly Rate</p>
+                            <p class="text-base font-medium text-gray-800">
+                                ₱<?= number_format($timesheet['hourly_rate'] ?? 0, 2) ?></p>
+                        </div>
+                        <div class="bg-white border border-gray-200 rounded-lg p-4">
+                            <p class="text-xs text-gray-400 mb-1">Total Days Worked</p>
+                            <p class="text-base font-medium text-gray-800">
+                                <?= $timesheetFilter !== 'all' ? ($timesheet['period_attendance_days'] ?? 0) : ($timesheet['total_attendance_days'] ?? 0) ?>
+                                days
+                            </p>
+                        </div>
+                        <div class="bg-white border border-gray-200 rounded-lg p-4">
+                            <p class="text-xs text-gray-400 mb-1">Status</p>
+                            <span
+                                class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium <?= $statusClass ?>">
+                                <?= $status ?>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Daily Attendance Records -->
+                    <?php if (!empty($attendanceRecords)): ?>
+                        <div class="mb-6">
+                            <h4 class="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                                <i class="fas fa-calendar-alt text-blue-500"></i>
+                                Daily Attendance Records
+                                <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full ml-2">
+                                    <?= count($attendanceRecords) ?> entries
+                                </span>
+                            </h4>
+                            <div class="overflow-x-auto border border-gray-200 rounded-lg">
+                                <table class="w-full text-sm">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="text-left py-3 px-4 text-xs font-medium text-gray-500">Date</th>
+                                            <th class="text-left py-3 px-4 text-xs font-medium text-gray-500">Clock In</th>
+                                            <th class="text-left py-3 px-4 text-xs font-medium text-gray-500">Clock Out</th>
+                                            <th class="text-right py-3 px-4 text-xs font-medium text-gray-500">Regular</th>
+                                            <th class="text-right py-3 px-4 text-xs font-medium text-gray-500">OT</th>
+                                            <th class="text-right py-3 px-4 text-xs font-medium text-gray-500">Total</th>
+                                            <th class="text-center py-3 px-4 text-xs font-medium text-gray-500">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php
+                                        $displayRecords = array_slice($attendanceRecords, 0, 15);
+                                        foreach ($displayRecords as $day):
+                                            $dayTotal = $day['regular_hours'] + $day['overtime_hours'];
+                                            $lateClass = '';
+                                            $lateText = '';
+                                            if (($day['late_minutes'] ?? 0) > 0) {
+                                                $lateClass = 'bg-yellow-50';
+                                                $lateText = 'Late (' . $day['late_minutes'] . 'm)';
+                                            }
+                                            ?>
+                                            <tr class="border-b border-gray-100 hover:bg-gray-50 <?= $lateClass ?>">
+                                                <td class="py-3 px-4">
+                                                    <span class="font-medium"><?= date('M j, Y', strtotime($day['date'])) ?></span>
+                                                    <span
+                                                        class="text-xs text-gray-400 ml-2"><?= date('D', strtotime($day['date'])) ?></span>
+                                                </td>
+                                                <td class="py-3 px-4 text-gray-600"><?= $day['clock_in'] ?? '—' ?></td>
+                                                <td class="py-3 px-4 text-gray-600"><?= $day['clock_out'] ?? '—' ?></td>
+                                                <td class="py-3 px-4 text-right"><?= number_format($day['regular_hours'], 1) ?></td>
+                                                <td class="py-3 px-4 text-right"><?= number_format($day['overtime_hours'], 1) ?></td>
+                                                <td class="py-3 px-4 text-right font-medium"><?= number_format($dayTotal, 1) ?></td>
+                                                <td class="py-3 px-4 text-center">
+                                                    <?php if ($lateText): ?>
+                                                        <span class="text-xs text-yellow-600"><?= $lateText ?></span>
+                                                    <?php else: ?>
+                                                        <span class="text-xs text-green-600">On Time</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                                <?php if (count($attendanceRecords) > 15): ?>
+                                    <div class="p-3 text-center border-t border-gray-100">
+                                        <p class="text-xs text-gray-400">Showing 15 of <?= count($attendanceRecords) ?> records</p>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <div class="mb-6 p-8 text-center bg-gray-50 rounded-lg border border-gray-200">
+                            <i class="fas fa-calendar-times text-3xl text-gray-300 mb-2"></i>
+                            <p class="text-gray-500">No attendance records found for this period</p>
+                        </div>
+                    <?php endif; ?>
+
+                    <!-- Approval Section -->
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 mt-4">
+                        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full 
+                                <?= $status == 'Approved' ? 'bg-green-100' : ($status == 'Pending' ? 'bg-yellow-100' : 'bg-gray-100') ?> 
+                                flex items-center justify-center">
+                                    <i
+                                        class="fas 
+                                    <?= $status == 'Approved' ? 'fa-check-circle text-green-600' :
+                                        ($status == 'Pending' ? 'fa-clock text-yellow-600' : 'fa-minus-circle text-gray-600') ?>">
+                                    </i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800">Current Status</p>
+                                    <span
+                                        class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium <?= $statusClass ?>">
+                                        <?= $status ?>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <?php if ($status != 'Approved' && $totalHours > 0): ?>
+                                <div class="flex gap-2">
+                                    <button onclick="closeModal('<?= $modalId ?>')"
+                                        class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onclick="approveTimesheet(<?= $timesheet['employee_id'] ?>, '<?= htmlspecialchars($timesheet['full_name']) ?>')"
+                                        class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors duration-200 flex items-center gap-2">
+                                        <i class="fas fa-check"></i>
+                                        Approve Timesheet
+                                    </button>
+                                </div>
+                            <?php else: ?>
+                                <button onclick="closeModal('<?= $modalId ?>')"
+                                    class="px-4 py-2 text-sm font-medium text-white bg-gray-800 hover:bg-gray-900 rounded-lg transition-colors duration-200">
+                                    Close
+                                </button>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <?php endforeach; ?>
+<?php endif; ?>

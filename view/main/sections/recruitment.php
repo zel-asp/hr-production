@@ -5,9 +5,14 @@
             <p class="text-gray-600 mt-1">Create job postings and attract candidates for hotel & restaurant positions
             </p>
         </div>
-        <button class="btn-primary" onclick="openModal('newJobModal')">
-            <i class="fas fa-plus mr-2"></i>New Job Posting
-        </button>
+        <div class="flex gap-3">
+            <button class="btn-primary" onclick="window.location.href='?tab=recruitment&modal=req'">
+                <i class="fas fa-building mr-2"></i>Requisitions
+            </button>
+            <button class="btn-primary" onclick="openModal('newJobModal')">
+                <i class="fas fa-plus mr-2"></i>New Job Posting
+            </button>
+        </div>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -140,7 +145,8 @@
                         class="modal fixed inset-0 bg-black/50 flex items-center justify-center hidden z-50">
                         <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
                             <!-- Modal Header -->
-                            <div class="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center">
+                            <div
+                                class="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
                                 <h3 class="text-lg font-semibold text-gray-800">Applicant Details</h3>
                                 <button onclick="closeModal('recruitment-applicantModal<?= $applicant['id'] ?>')"
                                     class="text-gray-400 hover:text-gray-600 text-xl font-light transition-colors duration-200">
@@ -232,10 +238,6 @@
                                         class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-colors duration-200">
                                         Close
                                     </button>
-                                    <button onclick="scheduleInterview(<?= $applicant['id'] ?>)" class="btn-primary">
-                                        <i class="fas fa-calendar-alt mr-2"></i>
-                                        Schedule Interview
-                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -253,3 +255,264 @@
         </div>
     </div>
 </div>
+
+<!-- Other Department Job Requisitions Modal -->
+<div id="otherDeptRequisitionsModal"
+    class="modal fixed inset-0 bg-black/50 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+        <!-- Modal Header -->
+        <div class="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-800">Job Requisitions from Other Departments</h3>
+                <p class="text-sm text-gray-500 mt-1">Review and approve hiring requests from other departments</p>
+            </div>
+            <button onclick="closeModal('otherDeptRequisitionsModal')"
+                class="text-gray-400 hover:text-gray-600 text-xl font-light transition-colors duration-200">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="p-6">
+            <!-- Filter/Search Bar -->
+            <form method="GET" action="" class="flex flex-wrap gap-4 mb-6">
+                <input type="hidden" name="tab" value="recruitment">
+                <input type="hidden" name="modal" value="req">
+
+                <div class="flex-1 min-w-[200px]">
+                    <div class="relative">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                        <input type="text" name="requisition_search" placeholder="Search requisitions..."
+                            value="<?= htmlspecialchars($requisitionSearch) ?>"
+                            class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                </div>
+
+                <select name="requisition_dept" onchange="this.form.submit()">
+                    class="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2
+                    focus:ring-blue-500 bg-white">
+                    <option value="">All Departments</option>
+                    <?php foreach ($requisitionDepartments as $dept): ?>
+                        <option value="<?= htmlspecialchars($dept['department']) ?>"
+                            <?= $requisitionDeptFilter == $dept['department'] ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($dept['department']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+
+                <select name="requisition_priority" onchange="this.form.submit()"
+                    class="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                    <option value="">All Priorities</option>
+                    <option value="high" <?= $requisitionPriorityFilter == 'high' ? 'selected' : '' ?>>High</option>
+                    <option value="medium" <?= $requisitionPriorityFilter == 'medium' ? 'selected' : '' ?>>Medium</option>
+                    <option value="low" <?= $requisitionPriorityFilter == 'low' ? 'selected' : '' ?>>Low</option>
+                </select>
+
+                <?php if (!empty($requisitionSearch) || !empty($requisitionDeptFilter) || !empty($requisitionPriorityFilter)): ?>
+                    <a href="?tab=recruitment&modal=req"
+                        class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2">
+                        <i class="fas fa-times"></i> Clear
+                    </a>
+                <?php endif; ?>
+            </form>
+
+            <!-- Requisitions List -->
+            <div class="space-y-4" id="requisitionResults">
+                <?php if (!empty($requisitions)): ?>
+                    <?php foreach ($requisitions as $req):
+                        $icon = getRequisitionIcon($req['department']);
+                        ?>
+                        <div
+                            class="border border-gray-200 rounded-lg p-4 hover:border-blue-200 hover:shadow-sm transition-all duration-200">
+                            <div class="flex flex-wrap gap-4 items-start justify-between">
+                                <div class="flex-1 min-w-[200px]">
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <div
+                                            class="w-10 h-10 bg-<?= $icon['color'] ?>-100 rounded-lg flex items-center justify-center">
+                                            <i class="fas <?= $icon['icon'] ?> text-<?= $icon['color'] ?>-600"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-semibold text-gray-800"><?= htmlspecialchars($req['job_title']) ?>
+                                            </h4>
+                                            <p class="text-sm text-gray-500"><?= htmlspecialchars($req['department']) ?>
+                                                Department • <?= htmlspecialchars($req['requested_by']) ?></p>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-wrap gap-4 text-sm text-gray-600 ml-13">
+                                        <span class="flex items-center gap-1">
+                                            <i class="fas fa-users text-gray-400 w-4"></i>
+                                            <?= $req['positions'] ?> position<?= $req['positions'] > 1 ? 's' : '' ?>
+                                        </span>
+                                        <span class="flex items-center gap-1">
+                                            <i class="fas fa-calendar text-gray-400 w-4"></i>
+                                            Needed by: <?= $req['formatted_needed_by'] ?>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span
+                                        class="px-3 py-1 rounded-full text-xs font-medium border <?= $req['priority_class'] ?>">
+                                        <?= ucfirst($req['priority']) ?> Priority
+                                    </span>
+                                    <span class="px-3 py-1 rounded-full text-xs font-medium border <?= $req['status_class'] ?>">
+                                        <?= ucfirst($req['status']) ?>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="mt-3 flex flex-wrap gap-2 justify-between items-center">
+                                <p class="text-sm text-gray-600"><span class="font-medium">Justification:</span>
+                                    <?= htmlspecialchars($req['justification']) ?></p>
+                                <div class="flex gap-2">
+                                    <?php if ($req['status'] == 'pending'): ?>
+                                        <form method="POST" action="/update-requisition-status" class="inline"
+                                            onsubmit="return confirm('Approve this requisition?')">
+                                            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                                            <input type="hidden" name="requisition_id" value="<?= $req['id'] ?>">
+                                            <input type="hidden" name="status" value="approved">
+                                            <input type="hidden" name="__method" value="PATCH">
+                                            <button type="submit"
+                                                class="px-3 py-1.5 text-sm bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors duration-200 border border-green-200">
+                                                <i class="fas fa-check mr-1"></i>Approve
+                                            </button>
+                                        </form>
+                                        <form method="POST" action="/update-requisition-status" class="inline"
+                                            onsubmit="return confirm('Decline this requisition?')">
+                                            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                                            <input type="hidden" name="requisition_id" value="<?= $req['id'] ?>">
+                                            <input type="hidden" name="status" value="declined">
+                                            <input type="hidden" name="__method" value="PATCH">
+                                            <button type="submit"
+                                                class="px-3 py-1.5 text-sm bg-white text-gray-600 rounded-lg hover:bg-gray-50 transition-colors duration-200 border border-gray-200">
+                                                <i class="fas fa-times mr-1"></i>Decline
+                                            </button>
+                                        </form>
+                                    <?php else: ?>
+                                        <span class="text-sm text-gray-400 px-3 py-1.5">No actions needed</span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-file-alt text-4xl mb-3 text-gray-300"></i>
+                        <p class="text-lg font-medium">No requisitions found</p>
+                        <p class="text-sm">No job requisitions match your filters</p>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Pagination -->
+            <?php if ($requisitionTotalPages > 1): ?>
+                <div class="mt-6 flex items-center justify-between">
+                    <p class="text-sm text-gray-500">
+                        Showing <span
+                            class="font-medium"><?= min(1 + ($requisitionPage - 1) * $requisitionPerPage, $requisitionTotalCount) ?>-<?= min($requisitionPage * $requisitionPerPage, $requisitionTotalCount) ?></span>
+                        of <span class="font-medium"><?= $requisitionTotalCount ?></span> requisitions
+                    </p>
+                    <div class="flex items-center gap-2">
+                        <?php if ($requisitionPage > 1): ?>
+                            <a href="?tab=recruitment&modal=req&requisition_page=<?= $requisitionPage - 1 ?>&requisition_dept=<?= urlencode($requisitionDeptFilter) ?>&requisition_priority=<?= urlencode($requisitionPriorityFilter) ?>&requisition_search=<?= urlencode($requisitionSearch) ?>"
+                                class="w-8 h-8 flex items-center justify-center text-sm rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+                                <i class="fas fa-chevron-left text-xs"></i>
+                            </a>
+                        <?php else: ?>
+                            <button
+                                class="w-8 h-8 flex items-center justify-center text-sm rounded-lg bg-white border border-gray-200 text-gray-400 cursor-not-allowed"
+                                disabled>
+                                <i class="fas fa-chevron-left text-xs"></i>
+                            </button>
+                        <?php endif; ?>
+
+                        <?php for ($i = 1; $i <= min(5, $requisitionTotalPages); $i++): ?>
+                            <a href="?tab=recruitment&requisition_page=<?= $i ?>&requisition_dept=<?= urlencode($requisitionDeptFilter) ?>&requisition_priority=<?= urlencode($requisitionPriorityFilter) ?>&requisition_search=<?= urlencode($requisitionSearch) ?>"
+                                class="w-8 h-8 flex items-center justify-center text-sm rounded-lg <?= $i == $requisitionPage ? 'bg-gray-800 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50' ?> transition-colors">
+                                <?= $i ?>
+                            </a>
+                        <?php endfor; ?>
+
+                        <?php if ($requisitionPage < $requisitionTotalPages): ?>
+                            <a href="?tab=recruitment&requisition_page=<?= $requisitionPage + 1 ?>&requisition_dept=<?= urlencode($requisitionDeptFilter) ?>&requisition_priority=<?= urlencode($requisitionPriorityFilter) ?>&requisition_search=<?= urlencode($requisitionSearch) ?>"
+                                class="w-8 h-8 flex items-center justify-center text-sm rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+                                <i class="fas fa-chevron-right text-xs"></i>
+                            </a>
+                        <?php else: ?>
+                            <button
+                                class="w-8 h-8 flex items-center justify-center text-sm rounded-lg bg-white border border-gray-200 text-gray-400 cursor-not-allowed"
+                                disabled>
+                                <i class="fas fa-chevron-right text-xs"></i>
+                            </button>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Summary Section -->
+            <div class="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div class="flex flex-wrap gap-6 justify-between items-center">
+                    <div class="flex gap-6">
+                        <div>
+                            <span class="text-sm text-gray-500">Total Requisitions</span>
+                            <p class="text-2xl font-semibold text-gray-800"><?= $requisitionTotal ?></p>
+                        </div>
+                        <div>
+                            <span class="text-sm text-gray-500">Pending</span>
+                            <p class="text-2xl font-semibold text-yellow-600"><?= $requisitionPending ?></p>
+                        </div>
+                        <div>
+                            <span class="text-sm text-gray-500">Approved</span>
+                            <p class="text-2xl font-semibold text-green-600"><?= $requisitionApproved ?></p>
+                        </div>
+                        <div>
+                            <span class="text-sm text-gray-500">Declined</span>
+                            <p class="text-2xl font-semibold text-red-600"><?= $requisitionDeclined ?></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="sticky bottom-0 bg-gray-50 border-t border-gray-100 px-6 py-4 flex justify-end">
+            <button onclick="closeRequisitionModal()"
+                class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors duration-200">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function exportRequisitions() {
+        const url = new URL(window.location.href);
+        url.pathname = '/export-requisitions';
+        url.searchParams.set('dept', '<?= $requisitionDeptFilter ?>');
+        url.searchParams.set('priority', '<?= $requisitionPriorityFilter ?>');
+        url.searchParams.set('status', '<?= $requisitionStatusFilter ?>');
+        url.searchParams.set('search', '<?= $requisitionSearch ?>');
+        window.location.href = url.toString();
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const params = new URLSearchParams(window.location.search);
+
+        if (params.get("modal") === "req") {
+            openModal("otherDeptRequisitionsModal");
+        }
+
+    });
+
+    function closeRequisitionModal() {
+
+        const url = new URL(window.location);
+
+        url.searchParams.delete("modal");
+
+        window.history.replaceState({}, "", url);
+
+        closeModal("otherDeptRequisitionsModal");
+
+    }
+
+</script>
