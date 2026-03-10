@@ -1,1 +1,5 @@
 compensation must approve by finance, after approved the pay per hour must update, and notify the employee
+
+claims must approved by finance and get the 
+
+payroll needs to process by hr, and finance will approved them or said paid or processed.

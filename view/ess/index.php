@@ -131,7 +131,6 @@
                             <i
                                 class="fa-solid fa-bullhorn w-5 <?= $currentTab == 'announcements' ? 'text-gray-900' : 'text-gray-400' ?>"></i>
                             <span>Announcements</span>
-                            <span class="ml-auto bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">2</span>
                         </a>
 
 
@@ -256,7 +255,7 @@
 
                     <!-- Dynamic Content Based on Tab -->
                     <?php if ($currentTab == 'dashboard'): ?>
-                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="grid grid-cols-1 lg:grid-cols-1 gap-6">
                             <!-- Left Column -->
                             <div class="lg:col-span-2 space-y-6">
                                 <!-- Personal Details Card -->
@@ -490,7 +489,7 @@
                                     <h2 class="text-base font-semibold text-gray-800 mb-3 flex items-center">
                                         <span class="title-accent"></span>quick actions
                                     </h2>
-                                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                         <button id="openLeaveModalBtn" onclick="openModal('leaveModal')"
                                             class="action-tile flex flex-col items-center gap-2 p-4 bg-[#f2f5f9] rounded-md hover:bg-[#e0e9f2] transition group">
                                             <span class="bg-white p-2 rounded-md shadow-sm">
@@ -513,14 +512,6 @@
                                                 <i class="fa-solid fa-file-lines fa-lg text-primary"></i>
                                             </span>
                                             <span class="text-xs font-medium text-gray-700">payslips</span>
-                                        </button>
-
-                                        <button id="openSettingsModalBtn" onclick="openModal('settingsModal')"
-                                            class="action-tile flex flex-col items-center gap-2 p-4 bg-[#f2f5f9] rounded-md hover:bg-[#e0e9f2] transition group">
-                                            <span class="bg-white p-2 rounded-md shadow-sm">
-                                                <i class="fa-solid fa-sliders fa-lg text-primary"></i>
-                                            </span>
-                                            <span class="text-xs font-medium text-gray-700">settings</span>
                                         </button>
                                     </div>
                                 </div>
@@ -744,44 +735,88 @@
                                         </a>
                                     </div>
                                 </div>
-                            </div>
+                                <div class="space-y-6">
+                                    <!-- Admin Notes -->
+                                    <div class="bg-white border border-gray-200 rounded-md p-5 shadow-sm">
+                                        <div class="flex items-center justify-between mb-3">
+                                            <h2 class="text-sm font-semibold text-gray-700 flex items-center">
+                                                <span class="title-accent"></span>Admin Notes
+                                            </h2>
+                                            <span class="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-md">
+                                                <i class="far fa-sticky-note mr-1"></i>3 notes
+                                            </span>
+                                        </div>
 
-                            <!-- Right Column -->
-                            <div class="space-y-6">
-                                <!-- HR Announcements -->
-                                <div class="bg-white border border-gray-200 rounded-md p-5 shadow-sm">
-                                    <div class="flex items-center justify-between mb-3">
-                                        <h2 class="text-sm font-semibold text-gray-700 flex items-center">
-                                            <span class="title-accent"></span>HR announcements
-                                        </h2>
-                                        <span class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-md">2 new</span>
-                                    </div>
-                                    <div class="space-y-3">
-                                        <div class="flex gap-3">
-                                            <span class="bg-[#ecf3fa] h-fit p-1.5 rounded-md">
-                                                <i class="fa-solid fa-pen-to-square text-primary"></i>
-                                            </span>
-                                            <div>
-                                                <p class="text-sm font-medium">Open enrollment ends Fri</p>
-                                                <p class="text-xs text-gray-400">benefits</p>
+                                        <div class="space-y-3">
+                                            <!-- Note 1 -->
+                                            <div class="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                                <div class="flex items-start gap-3">
+                                                    <div class="flex-shrink-0">
+                                                        <div
+                                                            class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                                                            <i class="fas fa-user-shield text-purple-600 text-xs"></i>
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex-1">
+                                                        <div class="flex items-center justify-between mb-1">
+                                                            <p class="text-xs font-medium text-purple-700">System
+                                                                Administrator</p>
+                                                            <span class="text-[10px] text-gray-400">March 15, 2025</span>
+                                                        </div>
+                                                        <p class="text-sm text-gray-600">Please ensure all employee
+                                                            documents are uploaded before the payroll cutoff on March 20.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Note 2 -->
+                                            <div class="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                                <div class="flex items-start gap-3">
+                                                    <div class="flex-shrink-0">
+                                                        <div
+                                                            class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                                                            <i class="fas fa-user-shield text-purple-600 text-xs"></i>
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex-1">
+                                                        <div class="flex items-center justify-between mb-1">
+                                                            <p class="text-xs font-medium text-purple-700">System
+                                                                Administrator</p>
+                                                            <span class="text-[10px] text-gray-400">March 14, 2025</span>
+                                                        </div>
+                                                        <p class="text-sm text-gray-600">Updated company policies have been
+                                                            posted. All employees must acknowledge by end of week.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Note 3 -->
+                                            <div class="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                                <div class="flex items-start gap-3">
+                                                    <div class="flex-shrink-0">
+                                                        <div
+                                                            class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                                                            <i class="fas fa-user-shield text-purple-600 text-xs"></i>
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex-1">
+                                                        <div class="flex items-center justify-between mb-1">
+                                                            <p class="text-xs font-medium text-purple-700">System
+                                                                Administrator</p>
+                                                            <span class="text-[10px] text-gray-400">March 12, 2025</span>
+                                                        </div>
+                                                        <p class="text-sm text-gray-600">System maintenance scheduled for
+                                                            Sunday, March 17 from 2AM to 4AM. Expect brief downtime.</p>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div class="flex gap-3">
-                                            <span class="bg-[#fcf0e0] h-fit p-1.5 rounded-md">
-                                                <i class="fa-solid fa-newspaper text-[#b26023]"></i>
-                                            </span>
-                                            <div>
-                                                <p class="text-sm font-medium">Q4 townhall · wed 2pm</p>
-                                                <p class="text-xs text-gray-400">mandatory</p>
-                                            </div>
-                                        </div>
                                     </div>
-                                    <button
-                                        class="w-full mt-4 text-xs text-primary bg-[#e7edf5] py-2 rounded-md hover:bg-[#d9e2ed] transition">
-                                        <i class="fa-solid fa-check-circle mr-1"></i>mark read
-                                    </button>
                                 </div>
                             </div>
+
+
                         </div>
 
                     <?php elseif ($currentTab == 'attendance'): ?>
@@ -799,10 +834,7 @@
                         <?php require base_path('view/ess/section/schedule.php'); ?>
 
                     <?php elseif ($currentTab == 'announcements'): ?>
-                        <div class="bg-white border border-gray-200 rounded-md p-5 shadow-sm">
-                            <h2 class="text-lg font-semibold text-gray-800 mb-4">Announcements</h2>
-                            <p class="text-gray-500"></p>
-                        </div>
+                        <?php require base_path('view/ess/section/notes.php'); ?>
 
                     <?php elseif ($currentTab == 'claims'): ?>
                         <?php require base_path('view/ess/section/claims.php'); ?>
@@ -825,7 +857,6 @@
         <?php require base_path('view/ess/modals/leave.php'); ?>
         <?php require base_path('view/ess/modals/attendance.php'); ?>
         <?php require base_path('view/ess/modals/payslip.php'); ?>
-        <?php require base_path('view/ess/modals/setting.php'); ?>
 
         <script>
             window.attendanceConfig = {
@@ -835,7 +866,7 @@
                 elapsedSeconds: <?= $elapsedSeconds ?>,
                 csrfToken: '<?= $_SESSION['csrf_token'] ?>',
                 <?php if ($currentAttendance && isset($currentAttendance['clock_in'])): ?>
-                                                                            shiftStartTime: '<?= $currentAttendance['clock_in'] ?>'
+                                                shiftStartTime: '<?= $currentAttendance['clock_in'] ?>'
                 <?php endif; ?>
             };
         </script>

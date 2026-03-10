@@ -1,5 +1,4 @@
 <?php
-require base_path("core/middleware/employeeAuth.php");
 
 // Destroy all session data
 $_SESSION = [];
