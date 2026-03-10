@@ -1,5 +1,9 @@
 <?php
 use Core\Database;
+require base_path("core/middleware/adminAuth.php");
+
+$config = require base_path('config/config.php');
+$db = new Database($config['database']);
 
 // Only allow POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
