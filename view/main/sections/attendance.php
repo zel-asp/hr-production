@@ -5,10 +5,10 @@
             <h2 class="text-2xl font-semibold text-gray-800">Time and Attendance</h2>
             <p class="text-gray-500 text-sm mt-1">Real-time employee attendance tracking</p>
         </div>
-        <button class="btn-primary" onclick="openModal('manualTimeModal')">
+        <!-- <button class="btn-primary" onclick="openModal('manualTimeModal')">
             <i class="fas fa-plus"></i>
             Manual Entry
-        </button>
+        </button> -->
     </div>
 
     <!-- Payroll Cutoff Period Banner -->

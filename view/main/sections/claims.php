@@ -120,11 +120,14 @@
                                     </td>
                                     <td class="py-3">
                                         <div class="flex items-center gap-2">
-                                            <button onclick="viewClaim(<?= $claim['id'] ?>)"
-                                                class="text-sm text-gray-500 hover:text-gray-700 bg-gray-50 hover:bg-gray-100 px-2.5 py-1 rounded-lg transition-colors duration-200 flex items-center gap-1">
-                                                <i class="fas fa-eye text-xs"></i>
-                                                Receipt
-                                            </button>
+                                            <?php if ($claim['receipt_path']): ?>
+                                                <a href="<?= $claim['receipt_path'] ?>" target="_blank" class="btn-primary">
+                                                    <i class="fas fa-receipt text-xs"></i>
+                                                    Receipt
+                                                </a>
+                                            <?php else: ?>
+                                                <span class="text-xs">No receipt</span>
+                                            <?php endif; ?>
                                             <?php if ($claim['status'] == 'Pending'): ?>
                                                 <button onclick="approveClaim(<?= $claim['id'] ?>)"
                                                     class="text-sm text-green-600 hover:text-green-700 bg-green-50 hover:bg-green-100 px-2.5 py-1 rounded-lg transition-colors duration-200 border border-green-200 flex items-center gap-1">

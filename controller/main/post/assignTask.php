@@ -1,7 +1,7 @@
 <?php
 
 use Core\Database;
-
+require base_path("core/middleware/adminAuth.php");
 $config = require base_path('config/config.php');
 $db = new Database($config['database']);
 
@@ -33,8 +33,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['error'][] = 'Invalid due date.';
         if (!in_array($priority, ['Low', 'Medium', 'High', 'Urgent']))
             $priority = 'Medium';
-        if (empty($assigned_staff))
-            $_SESSION['error'][] = 'Assigned staff is required.';
 
         if (empty($_SESSION['error'])) {
             try {
@@ -63,15 +61,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 // insert new task
                 $db->query("
-                    INSERT INTO tasks (assigned_to, task_type, task_description, due_date, priority, assigned_staff)
-                    VALUES (:assigned_to, :task_type, :task_description, :due_date, :priority, :assigned_staff)
+                    INSERT INTO tasks (assigned_to, task_type, task_description, due_date, priority)
+                    VALUES (:assigned_to, :task_type, :task_description, :due_date, :priority)
                 ", [
                     ':assigned_to' => $assigned_to,
                     ':task_type' => $task_type,
                     ':task_description' => $task_description,
                     ':due_date' => $due_date,
                     ':priority' => $priority,
-                    ':assigned_staff' => $assigned_staff
                 ]);
 
                 // Get the ID of the newly inserted task
