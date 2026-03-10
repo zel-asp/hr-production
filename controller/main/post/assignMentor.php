@@ -1,6 +1,6 @@
 <?php
 use Core\Database;
-
+require base_path("core/middleware/adminAuth.php");
 // Only allow POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     $_SESSION['error'][] = 'Invalid request method';

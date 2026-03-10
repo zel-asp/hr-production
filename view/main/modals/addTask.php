@@ -56,24 +56,6 @@
                         </div>
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Assign To (Staff)</label>
-                        <select name="assigned_staff" class="w-full border border-gray-300 rounded-lg px-3 py-2" required>
-                            <option value="">Select staff member</option>
-                            <?php if (!empty($staffMembers)): ?>
-                                <?php foreach ($staffMembers as $staff): ?>
-                                    <option value="<?= htmlspecialchars($staff['assigned_staff']) ?>">
-                                        <?= htmlspecialchars($staff['assigned_staff']) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <option value="Sarah Reyes">Sarah Reyes - Manager</option>
-                                <option value="Mike Dela Cruz">Mike Dela Cruz - Trainer</option>
-                                <option value="Lisa Martinez">Lisa Martinez - HR</option>
-                            <?php endif; ?>
-                        </select>
-                    </div>
-
                     <!-- Additional optional fields -->
                     <div class="grid grid-cols-2 gap-3">
                         <div>

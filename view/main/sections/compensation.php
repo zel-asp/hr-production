@@ -353,16 +353,20 @@
         const hourlyRate = selected.dataset.hourly || 0;
         const monthlySalary = hourlyRate * 8 * 22;
 
+
         document.getElementById('current_salary_display').value = '₱' + monthlySalary.toLocaleString();
         document.getElementById('current_salary').value = monthlySalary;
         document.getElementById('proposed_salary').value = '';
         document.getElementById('increase_amount').value = '';
         document.getElementById('increase_percentage').value = '';
+        document.getElementById('ratePerHour').value = ratePerHour;
     }
 
     function calculateIncrease() {
         const current = parseFloat(document.getElementById('current_salary').value) || 0;
         const proposed = parseFloat(document.getElementById('proposed_salary').value) || 0;
+
+        document.getElementById('ratePerHour').value = ((proposed / 8) / 22).toFixed(2);
 
         if (current > 0 && proposed > 0) {
             const increase = proposed - current;
