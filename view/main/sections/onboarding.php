@@ -57,7 +57,7 @@
                             <th class="text-left py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Onboarding Status</th>
                             <th class="text-left py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Action</th>
+                                Note</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -87,13 +87,48 @@
                                         </span>
                                     </td>
                                     <td class="py-3">
-                                        
+                                        <?php
+                                        $completeness = getEmployeeCompleteness($employee);
+                                        ?>
+                                        <?php if ($completeness['is_complete']): ?>
+                                            <span
+                                                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                                                <i class="fas fa-check-circle text-green-600 text-xs"></i>
+                                                Complete
+                                            </span>
+                                        <?php else: ?>
+                                            <div class="flex items-center gap-2">
+                                                <span
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200 cursor-help"
+                                                    title="<?= htmlspecialchars(implode(', ', $completeness['missing_items'])) ?>">
+                                                    <i class="fas fa-exclamation-circle text-red-600 text-xs"></i>
+                                                    <?= $completeness['missing_count'] ?> Missing
+                                                </span>
+
+                                                <!-- Notify Button -->
+                                                <form action="/send-requirement-notification" method="POST" class="inline">
+                                                    <input type="hidden" name="csrf_token"
+                                                        value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+                                                    <input type="hidden" name="employee_id" value="<?= $employee['id'] ?>">
+                                                    <input type="hidden" name="missing_count"
+                                                        value="<?= $completeness['missing_count'] ?>">
+                                                    <input type="hidden" name="missing_items"
+                                                        value="<?= htmlspecialchars(implode(', ', $completeness['missing_items'])) ?>">
+                                                    <button type="submit"
+                                                        class="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg border border-blue-200 transition flex items-center gap-1"
+                                                        onclick="return confirm('Send notification to employee about missing requirements?')">
+                                                        <i class="fas fa-bell"></i>
+                                                        Notify
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="5" class="py-8 text-center text-gray-500 text-sm">
+                                <td colspan="7" class="py-8 text-center text-gray-500 text-sm">
                                     <div class="flex flex-col items-center gap-2">
                                         <i class="fas fa-users text-gray-300 text-2xl"></i>
                                         <p>No new hires found.</p>

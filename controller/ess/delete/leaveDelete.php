@@ -39,7 +39,7 @@ try {
         throw new Exception('Request not found');
     }
 
-    $employeeId = $_SESSION['employee']['employee_record_id']['id'] ?? null;
+    $employeeId = $_SESSION['employee']['employee_record_id'] ?? null;
 
     if ($employeeId && $request['employee_id'] != $employeeId) {
         throw new Exception('You do not have permission to delete this request');

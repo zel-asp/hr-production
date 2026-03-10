@@ -65,14 +65,14 @@
                     </select>
                 </div>
 
-                <!-- Salary Range -->
+                <!-- Rate Per Hour -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">
-                        Salary Range <span class="text-red-500">*</span>
+                        Rate Per Hour (₱) <span class="text-red-500">*</span>
                     </label>
-                    <input type="text"
+                    <input type="number" step="10" min="0" name="rate_per_hour" placeholder="e.g. 150"
                         class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 transition-all duration-200 text-gray-700"
-                        value="₱15-20/hr + tips" name="salary" placeholder="e.g. $40-50k/year">
+                        required>
                 </div>
 
                 <!-- Form Actions -->
