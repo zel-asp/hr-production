@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 [$position, $department, $location, $shift, $salary]
             )->find();
 
-            if ($existing && $existing['count'] > 0) {
+            if ($existing) {
                 $error[] = 'This job posting already exists.';
                 $_SESSION['error'] = $error;
                 header('Location: /main?tab=recruitment&modal=newJobModal');
