@@ -14,7 +14,7 @@ if (!isset($_POST['csrf_token']) || !isset($_SESSION['csrf_token']) || $_POST['c
 }
 
 // Verify this is a PATCH request via method spoofing
-if ($_POST['__method'] !== 'PATCH') {
+if (!isset($_POST['__method']) || $_POST['__method'] !== 'PATCH') {
     $_SESSION['error'][] = 'Invalid request method';
     header('Location: /main?tab=timesheet');
     exit();
@@ -34,13 +34,15 @@ if ($summaryId) {
             FROM attendance_summary as2
             JOIN employees e ON as2.employee_id = e.id
             WHERE as2.id = ?
-        ", [$summaryId])->find();
+        ", [$summaryId])->fetch_one(); // Changed from find() to fetch_one()
 
         if (!$summary) {
             throw new Exception('Attendance summary not found');
         }
 
-        if ($summary['status'] === 'Approved') {
+        // Check if status exists before comparing
+        $currentStatus = $summary['status'] ?? '';
+        if ($currentStatus === 'Approved') {
             $_SESSION['info'][] = 'Timesheet is already approved.';
             $db->commit();
             header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '/main?tab=timesheet'));
@@ -55,7 +57,9 @@ if ($summaryId) {
             WHERE id = ?
         ", [$summaryId]);
 
-        $_SESSION['success'][] = "Timesheet for {$summary['full_name']} has been approved successfully.";
+        // Check if full_name exists before using it
+        $employeeName = $summary['full_name'] ?? 'Employee';
+        $_SESSION['success'][] = "Timesheet for {$employeeName} has been approved successfully.";
         $db->commit();
 
     } catch (Exception $e) {
@@ -85,13 +89,15 @@ if ($summaryId) {
             WHERE employee_id = ? 
             AND period_start = ? 
             AND period_end = ?
-        ", [$employeeId, $periodStart, $periodEnd])->find();
+        ", [$employeeId, $periodStart, $periodEnd])->fetch_one(); // Changed from find() to fetch_one()
 
         if (!$summary) {
             throw new Exception('No attendance summary found');
         }
 
-        if ($summary['status'] === 'Approved') {
+        // Check if status exists before comparing
+        $currentStatus = $summary['status'] ?? '';
+        if ($currentStatus === 'Approved') {
             $_SESSION['info'][] = 'Timesheet is already approved.';
             $db->commit();
             header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '/main?tab=timesheet'));
@@ -106,9 +112,9 @@ if ($summaryId) {
             WHERE id = ?
         ", [$summary['id']]);
 
-        // Get employee name
-        $employee = $db->query("SELECT full_name FROM employees WHERE id = ?", [$employeeId])->find();
-        $employeeName = $employee ? $employee['full_name'] : 'Employee';
+        // Get employee name separately
+        $employee = $db->query("SELECT full_name FROM employees WHERE id = ?", [$employeeId])->fetch_one();
+        $employeeName = $employee ? ($employee['full_name'] ?? 'Employee') : 'Employee';
 
         $_SESSION['success'][] = "Timesheet for {$employeeName} has been approved successfully.";
         $db->commit();
@@ -120,5 +126,10 @@ if ($summaryId) {
     }
 }
 
-header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '/main?tab=timesheet'));
+// Make sure no output has been sent before this
+if (!headers_sent()) {
+    header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '/main?tab=timesheet'));
+} else {
+    echo '<script>window.location.href="' . ($_SERVER['HTTP_REFERER'] ?? '/main?tab=timesheet') . '"</script>';
+}
 exit();
