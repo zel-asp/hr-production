@@ -196,10 +196,6 @@
                                                                         class="ml-2 text-xs bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full">High</span>
                                                                 <?php endif; ?>
                                                             </span>
-                                                            <p class="text-xs text-gray-500">
-                                                                <i
-                                                                    class="fas fa-user mr-1"></i><?= htmlspecialchars($task['assigned_staff']) ?>
-                                                            </p>
                                                         </div>
                                                     </div>
                                                     <div class="text-right ml-4 flex items-center gap-3">
