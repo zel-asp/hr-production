@@ -6,10 +6,11 @@
             </p>
         </div>
         <div class="flex gap-3">
-            <button class="btn-primary" onclick="window.location.href='?tab=recruitment&modal=req'">
+            <!-- Add js-loading-btn to both buttons -->
+            <button class="js-loading-btn btn-primary" onclick="window.location.href='?tab=recruitment&modal=req'">
                 <i class="fas fa-building mr-2"></i>Requisitions
             </button>
-            <button class="btn-primary" onclick="openModal('newJobModal')">
+            <button class="js-loading-btn btn-primary" onclick="openModal('newJobModal')">
                 <i class="fas fa-plus mr-2"></i>New Job Posting
             </button>
         </div>
@@ -82,7 +83,7 @@
                         </div>
                     </div>
 
-                    <!-- Action buttons with refined hover states -->
+                    <!-- Action buttons with loading handler class added -->
                     <div class="flex border-t border-gray-100">
                         <button onclick="openEditJobModal(
                             <?= $job['id'] ?>,
@@ -91,7 +92,7 @@
                             '<?= htmlspecialchars($job['shift'], ENT_QUOTES) ?>',
                             '<?= htmlspecialchars($job['salary'], ENT_QUOTES) ?>'
                         )"
-                            class="flex-1 px-3 py-3 text-xs font-medium text-gray-600 hover:text-indigo-600 hover:bg-indigo-50/50 transition-colors duration-200">
+                            class="js-loading-btn flex-1 px-3 py-3 text-xs font-medium text-gray-600 hover:text-indigo-600 hover:bg-indigo-50/50 transition-colors duration-200">
                             <i class="fas fa-edit mr-1.5 text-gray-400 group-hover:text-indigo-400"></i>
                             Edit
                         </button>
@@ -101,8 +102,9 @@
                             <input type="hidden" value="DELETE" name="__method">
                             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                             <input type="hidden" name="job_id" value="<?= $job['id'] ?>">
+                            <!-- Added js-loading-btn class here -->
                             <button type="submit" name="delete-jobBtn"
-                                class="w-full px-3 py-3 text-xs font-medium text-gray-600 hover:text-rose-600 hover:bg-rose-50/50 transition-colors duration-200 border-l border-gray-100">
+                                class="js-loading-btn w-full px-3 py-3 text-xs font-medium text-gray-600 hover:text-rose-600 hover:bg-rose-50/50 transition-colors duration-200 border-l border-gray-100">
                                 <i class="fas fa-trash mr-1.5 text-gray-400 group-hover:text-rose-400"></i>
                                 Delete
                             </button>
@@ -119,8 +121,9 @@
                     </div>
                     <p class="text-gray-900 font-medium mb-1">No job postings yet</p>
                     <p class="text-sm text-gray-400 mb-4">Get started by creating your first position</p>
+                    <!-- Added js-loading-btn class -->
                     <button onclick="openModal('newJobModal')"
-                        class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors">
+                        class="js-loading-btn inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors">
                         <i class="fas fa-plus mr-2"></i>
                         Create Job Posting
                     </button>
@@ -176,8 +179,9 @@
                                 </div>
                             </div>
 
+                            <!-- Added js-loading-btn class -->
                             <button onclick="openModal('recruitment-applicantModal<?= $applicant['id'] ?>')"
-                                class="ml-2 px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 bg-white rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all duration-200">
+                                class="js-loading-btn ml-2 px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 bg-white rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all duration-200">
                                 <i class="fas fa-eye mr-1.5 text-gray-400"></i>
                                 Review
                             </button>
@@ -191,7 +195,7 @@
                                 <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                                     <h3 class="text-base font-semibold text-gray-900">Applicant Profile</h3>
                                     <button onclick="closeModal('recruitment-applicantModal<?= $applicant['id'] ?>')"
-                                        class="w-8 h-8 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center">
+                                        class="js-loading-btn w-8 h-8 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center">
                                         <i class="fas fa-times"></i>
                                     </button>
                                 </div>
@@ -259,7 +263,7 @@
 
                                         <?php if (!empty($applicant['resume_path'])): ?>
                                             <a href="<?= htmlspecialchars($applicant['resume_path']) ?>" target="_blank"
-                                                class="flex items-center gap-3 p-4 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors group">
+                                                class="js-loading-btn flex items-center gap-3 p-4 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors group">
                                                 <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
                                                     <i class="fas fa-file-pdf text-indigo-500"></i>
                                                 </div>
@@ -275,11 +279,12 @@
 
                                 <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 rounded-b-xl flex justify-end gap-3">
                                     <button onclick="closeModal('recruitment-applicantModal<?= $applicant['id'] ?>')"
-                                        class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
+                                        class="js-loading-btn px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
                                         Close
                                     </button>
+                                    <!-- Added js-loading-btn class -->
                                     <button
-                                        class="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors">
+                                        class="js-loading-btn px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors">
                                         <i class="fas fa-download mr-2"></i>
                                         Download CV
                                     </button>
@@ -311,8 +316,9 @@
                 <h3 class="text-lg font-semibold text-gray-800">Job Requisitions from Other Departments</h3>
                 <p class="text-sm text-gray-500 mt-1">Review and approve hiring requests from other departments</p>
             </div>
+            <!-- Added js-loading-btn class -->
             <button onclick="closeModal('otherDeptRequisitionsModal')"
-                class="text-gray-400 hover:text-gray-600 text-xl font-light transition-colors duration-200">
+                class="js-loading-btn text-gray-400 hover:text-gray-600 text-xl font-light transition-colors duration-200">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -320,7 +326,7 @@
         <!-- Modal Body -->
         <div class="p-6">
             <!-- Filter/Search Bar -->
-            <form method="GET" action="" class="flex flex-wrap gap-4 mb-6">
+            <form method="GET" action="" class="flex flex-wrap gap-4 mb-6 js-loading-form">
                 <input type="hidden" name="tab" value="recruitment">
                 <input type="hidden" name="modal" value="req">
 
@@ -333,9 +339,8 @@
                     </div>
                 </div>
 
-                <select name="requisition_dept" onchange="this.form.submit()">
-                    class="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2
-                    focus:ring-blue-500 bg-white">
+                <select name="requisition_dept" onchange="this.form.submit()"
+                    class="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                     <option value="">All Departments</option>
                     <?php foreach ($requisitionDepartments as $dept): ?>
                         <option value="<?= htmlspecialchars($dept['department']) ?>"
@@ -353,9 +358,15 @@
                     <option value="low" <?= $requisitionPriorityFilter == 'low' ? 'selected' : '' ?>>Low</option>
                 </select>
 
+                <!-- Added submit button with loading class -->
+                <button type="submit"
+                    class="js-loading-btn px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors">
+                    <i class="fas fa-filter mr-2"></i>Apply Filters
+                </button>
+
                 <?php if (!empty($requisitionSearch) || !empty($requisitionDeptFilter) || !empty($requisitionPriorityFilter)): ?>
                     <a href="?tab=recruitment&modal=req"
-                        class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2">
+                        class="js-loading-btn px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2">
                         <i class="fas fa-times"></i> Clear
                     </a>
                 <?php endif; ?>
@@ -415,8 +426,9 @@
                                             <input type="hidden" name="requisition_id" value="<?= $req['id'] ?>">
                                             <input type="hidden" name="status" value="approved">
                                             <input type="hidden" name="__method" value="PATCH">
+                                            <!-- Added js-loading-btn class -->
                                             <button type="submit"
-                                                class="px-3 py-1.5 text-sm bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors duration-200 border border-green-200">
+                                                class="js-loading-btn px-3 py-1.5 text-sm bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors duration-200 border border-green-200">
                                                 <i class="fas fa-check mr-1"></i>Approve
                                             </button>
                                         </form>
@@ -426,8 +438,9 @@
                                             <input type="hidden" name="requisition_id" value="<?= $req['id'] ?>">
                                             <input type="hidden" name="status" value="declined">
                                             <input type="hidden" name="__method" value="PATCH">
+                                            <!-- Added js-loading-btn class -->
                                             <button type="submit"
-                                                class="px-3 py-1.5 text-sm bg-white text-gray-600 rounded-lg hover:bg-gray-50 transition-colors duration-200 border border-gray-200">
+                                                class="js-loading-btn px-3 py-1.5 text-sm bg-white text-gray-600 rounded-lg hover:bg-gray-50 transition-colors duration-200 border border-gray-200">
                                                 <i class="fas fa-times mr-1"></i>Decline
                                             </button>
                                         </form>
@@ -458,7 +471,7 @@
                     <div class="flex items-center gap-2">
                         <?php if ($requisitionPage > 1): ?>
                             <a href="?tab=recruitment&modal=req&requisition_page=<?= $requisitionPage - 1 ?>&requisition_dept=<?= urlencode($requisitionDeptFilter) ?>&requisition_priority=<?= urlencode($requisitionPriorityFilter) ?>&requisition_search=<?= urlencode($requisitionSearch) ?>"
-                                class="w-8 h-8 flex items-center justify-center text-sm rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+                                class="js-loading-btn w-8 h-8 flex items-center justify-center text-sm rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
                                 <i class="fas fa-chevron-left text-xs"></i>
                             </a>
                         <?php else: ?>
@@ -470,15 +483,15 @@
                         <?php endif; ?>
 
                         <?php for ($i = 1; $i <= min(5, $requisitionTotalPages); $i++): ?>
-                            <a href="?tab=recruitment&requisition_page=<?= $i ?>&requisition_dept=<?= urlencode($requisitionDeptFilter) ?>&requisition_priority=<?= urlencode($requisitionPriorityFilter) ?>&requisition_search=<?= urlencode($requisitionSearch) ?>"
-                                class="w-8 h-8 flex items-center justify-center text-sm rounded-lg <?= $i == $requisitionPage ? 'bg-gray-800 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50' ?> transition-colors">
+                            <a href="?tab=recruitment&modal=req&requisition_page=<?= $i ?>&requisition_dept=<?= urlencode($requisitionDeptFilter) ?>&requisition_priority=<?= urlencode($requisitionPriorityFilter) ?>&requisition_search=<?= urlencode($requisitionSearch) ?>"
+                                class="js-loading-btn w-8 h-8 flex items-center justify-center text-sm rounded-lg <?= $i == $requisitionPage ? 'bg-gray-800 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50' ?> transition-colors">
                                 <?= $i ?>
                             </a>
                         <?php endfor; ?>
 
                         <?php if ($requisitionPage < $requisitionTotalPages): ?>
-                            <a href="?tab=recruitment&requisition_page=<?= $requisitionPage + 1 ?>&requisition_dept=<?= urlencode($requisitionDeptFilter) ?>&requisition_priority=<?= urlencode($requisitionPriorityFilter) ?>&requisition_search=<?= urlencode($requisitionSearch) ?>"
-                                class="w-8 h-8 flex items-center justify-center text-sm rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+                            <a href="?tab=recruitment&modal=req&requisition_page=<?= $requisitionPage + 1 ?>&requisition_dept=<?= urlencode($requisitionDeptFilter) ?>&requisition_priority=<?= urlencode($requisitionPriorityFilter) ?>&requisition_search=<?= urlencode($requisitionSearch) ?>"
+                                class="js-loading-btn w-8 h-8 flex items-center justify-center text-sm rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
                                 <i class="fas fa-chevron-right text-xs"></i>
                             </a>
                         <?php else: ?>
@@ -513,14 +526,20 @@
                             <p class="text-2xl font-semibold text-red-600"><?= $requisitionDeclined ?></p>
                         </div>
                     </div>
+                    <!-- Added export button with loading class -->
+                    <button onclick="exportRequisitions()"
+                        class="js-loading-btn px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors">
+                        <i class="fas fa-download mr-2"></i>Export Report
+                    </button>
                 </div>
             </div>
         </div>
 
         <!-- Modal Footer -->
         <div class="sticky bottom-0 bg-gray-50 border-t border-gray-100 px-6 py-4 flex justify-end">
+            <!-- Added js-loading-btn class -->
             <button onclick="closeRequisitionModal()"
-                class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors duration-200">
+                class="js-loading-btn px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors duration-200">
                 Close
             </button>
         </div>
@@ -529,35 +548,31 @@
 
 <script>
     function exportRequisitions() {
+        const button = event.target.closest('button');
+        showButtonLoading(button);
+
         const url = new URL(window.location.href);
         url.pathname = '/export-requisitions';
         url.searchParams.set('dept', '<?= $requisitionDeptFilter ?>');
         url.searchParams.set('priority', '<?= $requisitionPriorityFilter ?>');
         url.searchParams.set('status', '<?= $requisitionStatusFilter ?>');
         url.searchParams.set('search', '<?= $requisitionSearch ?>');
+
+        // The page will redirect, so loading will stay until redirect
         window.location.href = url.toString();
     }
 
     document.addEventListener("DOMContentLoaded", function () {
-
         const params = new URLSearchParams(window.location.search);
-
         if (params.get("modal") === "req") {
             openModal("otherDeptRequisitionsModal");
         }
-
     });
 
     function closeRequisitionModal() {
-
         const url = new URL(window.location);
-
         url.searchParams.delete("modal");
-
         window.history.replaceState({}, "", url);
-
         closeModal("otherDeptRequisitionsModal");
-
     }
-
 </script>
