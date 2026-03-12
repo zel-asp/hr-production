@@ -67,10 +67,16 @@ function validateApiKey()
     }
 
     $validKeys = [
+        // Existing keys
         'hr_system_2026_secure_key_12345' => ['name' => 'HR System', 'permissions' => 'all'],
-        'finance_system_2026_key_67890' => ['name' => 'Finance System', 'permissions' => 'all'],
+        'finance_system_2026_key_67890' => ['name' => 'Finance System', 'permissions' => 'write'],
         'employee_portal_key_11111' => ['name' => 'Employee Portal', 'permissions' => 'read'],
-        'core_system_2026_key_54321' => ['name' => 'Core Systems', 'permissions' => 'write']
+
+        // New Core Systems key
+        'core_system_2026_key_54321' => ['name' => 'Core Systems', 'permissions' => 'write'],
+
+        // New Logistics key
+        'logistic_system_2026_key_98765' => ['name' => 'Logistics', 'permissions' => 'write']
     ];
 
     if (!isset($validKeys[$apiKey])) {
