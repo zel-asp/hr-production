@@ -101,7 +101,8 @@
                             <input type="hidden" value="DELETE" name="__method">
                             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                             <input type="hidden" name="job_id" value="<?= $job['id'] ?>">
-                            <button type="submit" name="delete-jobBtn"
+                            <!-- Replace just the delete button part in your job card -->
+                            <button type="button" onclick="openSimpleDeleteModal(<?= $job['id'] ?>)"
                                 class="w-full px-3 py-3 text-xs font-medium text-gray-600 hover:text-rose-600 hover:bg-rose-50/50 transition-colors duration-200 border-l border-gray-100">
                                 <i class="fas fa-trash mr-1.5 text-gray-400 group-hover:text-rose-400"></i>
                                 Delete
@@ -527,7 +528,87 @@
     </div>
 </div>
 
+<!-- ULTRA SIMPLE DELETE MODAL -->
+<div id="simpleDeleteModal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 99999; align-items: center; justify-content: center;">
+    <div style="background: white; width: 350px; padding: 24px; border-radius: 12px; text-align: center;">
+        <div style="font-size: 48px; color: #dc2626; margin-bottom: 16px;">
+            <i class="fas fa-exclamation-circle"></i>
+        </div>
+        <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 8px;">Delete Job Posting</h3>
+        <p style="color: #6b7280; margin-bottom: 20px;">Are you sure? This cannot be undone.</p>
+
+        <!-- Replace your delete button with this SIMPLE form -->
+        <form method="POST" action="/delete-job" onsubmit="return confirm('Delete this job?');">
+            <input type="hidden" value="DELETE" name="__method">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+            <input type="hidden" name="job_id" value="<?= $job['id'] ?>">
+            <input type="hidden" name="delete-jobBtn" value="1">
+            <button type="submit"
+                class="w-full px-3 py-3 text-xs font-medium text-gray-600 hover:text-rose-600 hover:bg-rose-50/50 transition-colors duration-200 border-l border-gray-100">
+                <i class="fas fa-trash mr-1.5 text-gray-400"></i>
+                Delete
+            </button>
+        </form>
+    </div>
+</div>
+
 <script>
+    // Simple modal functions
+    function openSimpleDeleteModal(jobId) {
+        document.getElementById('deleteJobId').value = jobId;
+        document.getElementById('simpleDeleteModal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeSimpleModal() {
+        document.getElementById('simpleDeleteModal').style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    // Close modal when clicking outside
+    document.addEventListener('click', function (event) {
+        const modal = document.getElementById('simpleDeleteModal');
+        if (event.target === modal) {
+            closeSimpleModal();
+        }
+    });
+</script>
+
+<script>
+    // Delete modal functions
+    let currentDeleteForm = null;
+
+    function openDeleteModal(form) {
+        currentDeleteForm = form;
+        document.getElementById('deleteConfirmModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeDeleteModal() {
+        document.getElementById('deleteConfirmModal').classList.remove('active');
+        document.body.style.overflow = '';
+        currentDeleteForm = null;
+    }
+
+    // Handle confirm delete
+    document.addEventListener('DOMContentLoaded', function () {
+        const confirmBtn = document.getElementById('confirmDeleteBtn');
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', function () {
+                if (currentDeleteForm) {
+                    // Show loading on button
+                    const originalText = confirmBtn.innerHTML;
+                    confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Deleting...';
+                    confirmBtn.disabled = true;
+
+                    // Submit the form
+                    currentDeleteForm.submit();
+                }
+            });
+        }
+    });
+
     function exportRequisitions() {
         const url = new URL(window.location.href);
         url.pathname = '/export-requisitions';
