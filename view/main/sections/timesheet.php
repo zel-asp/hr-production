@@ -243,8 +243,7 @@
                                                 </div>
 
                                             <?php elseif ($isPending): ?>
-                                                <form action="/approve-timesheet" method="POST" class="inline-block"
-                                                    onsubmit="return confirm('Approve timesheet for <?= htmlspecialchars($timesheet['full_name']) ?>?')">
+                                                <form action="/approve-timesheet" method="POST" class="inline-block">
                                                     <input type="hidden" name="__method" value="PATCH">
                                                     <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
 
@@ -261,16 +260,11 @@
                                                         <?php endif; ?>
                                                     <?php endif; ?>
 
-                                                    <button type="submit"
-                                                        class="group relative w-9 h-9 flex items-center justify-center text-green-600 hover:text-white bg-green-50 hover:bg-green-600 rounded-lg transition-all duration-200 border border-green-200 hover:border-green-600 shadow-sm hover:shadow-md"
-                                                        title="Approve timesheet">
-                                                        <i
-                                                            class="fas fa-check text-sm group-hover:scale-110 transition-transform duration-200"></i>
-                                                        <span
-                                                            class="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
-                                                            Approve
-                                                        </span>
-                                                    </button>
+                                                    <<button
+                                                        class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors duration-200 flex items-center gap-2">
+                                                        <i class="fas fa-check"></i>
+                                                        Approve Timesheet
+                                                        </button>
                                                 </form>
 
                                             <?php else: ?>
