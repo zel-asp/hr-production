@@ -19,6 +19,49 @@ if (empty($email) || empty($password)) {
     exit();
 }
 
+// At the top of both login controllers, add this function
+function validateTurnstile($token)
+{
+    $secretKey = '0x4AAAAAACp0bIlf_1ZdwAgGfG5czc9ZDUs';
+
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, 'https://challenges.cloudflare.com/turnstile/v0/siteverify');
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
+        'secret' => $secretKey,
+        'response' => $token,
+        'remoteip' => $_SERVER['REMOTE_ADDR']
+    ]));
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode !== 200) {
+        error_log("Turnstile API error: HTTP $httpCode");
+        return false;
+    }
+
+    $result = json_decode($response, true);
+    return $result['success'] === true;
+}
+
+// After CSRF validation, add this:
+$turnstileToken = $_POST['cf-turnstile-response'] ?? '';
+if (empty($turnstileToken)) {
+    $_SESSION['error'][] = "Please complete the CAPTCHA verification.";
+    header('Location: /login');
+    exit();
+}
+
+if (!validateTurnstile($turnstileToken)) {
+    $_SESSION['error'][] = "CAPTCHA verification failed. Please try again.";
+    header('Location: /login');
+    exit();
+}
+
+
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     $_SESSION['error'][] = "Invalid email format.";
     header('Location: /login?type=hr');
