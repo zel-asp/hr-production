@@ -143,7 +143,6 @@
                 <div class="text-center py-8 text-gray-400">
                     <i class="fas fa-graduation-cap text-4xl mb-2"></i>
                     <p class="text-sm">No interventions assigned yet</p>
-                    <p class="text-xs mt-1">Click "Add Intervention" to assign learning interventions</p>
                 </div>
             <?php endif; ?>
         </div>

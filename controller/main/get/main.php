@@ -1329,7 +1329,6 @@ try {
         FROM competency_assessments ca
         JOIN employees e ON ca.employee_id = e.id
         JOIN competencies c ON ca.competency_id = c.id
-        WHERE e.status = 'Probationary'
         ORDER BY ca.assessment_date DESC
         LIMIT $competencyPerPage OFFSET $competencyOffset
     ")->find();
