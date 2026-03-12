@@ -10,22 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit();
 }
 
-$email = trim($_POST['email'] ?? '');
-$password = trim($_POST['password'] ?? '');
-
-if (empty($email) || empty($password)) {
-    $_SESSION['error'][] = "email and employee id are required.";
-    header('Location: /login');
-    exit();
-}
-
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    $_SESSION['error'][] = "invalid email format.";
-    header('Location: /login');
-    exit();
-}
-
-// At the top of both login controllers, add this function
+// Add Turnstile validation function at the top
 function validateTurnstile($token)
 {
     $secretKey = '0x4AAAAAACp0bIlf_1ZdwAgGfG5czc9ZDUs';
@@ -36,13 +21,20 @@ function validateTurnstile($token)
     curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
         'secret' => $secretKey,
         'response' => $token,
-        'remoteip' => $_SERVER['REMOTE_ADDR']
+        'remoteip' => $_SERVER['REMOTE_ADDR'] ?? ''
     ]));
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
 
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
     curl_close($ch);
+
+    if ($curlError) {
+        error_log("cURL Error: " . $curlError);
+        return false;
+    }
 
     if ($httpCode !== 200) {
         error_log("Turnstile API error: HTTP $httpCode");
@@ -53,7 +45,14 @@ function validateTurnstile($token)
     return $result['success'] === true;
 }
 
-// After CSRF validation, add this:
+// Validate CSRF token
+if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+    $_SESSION['error'][] = "Invalid security token.";
+    header('Location: /login');
+    exit();
+}
+
+// Validate Turnstile FIRST
 $turnstileToken = $_POST['cf-turnstile-response'] ?? '';
 if (empty($turnstileToken)) {
     $_SESSION['error'][] = "Please complete the CAPTCHA verification.";
@@ -67,7 +66,21 @@ if (!validateTurnstile($turnstileToken)) {
     exit();
 }
 
-// Rest of your login code continues here...
+// Get form data
+$email = trim($_POST['email'] ?? '');
+$password = trim($_POST['password'] ?? '');
+
+if (empty($email) || empty($password)) {
+    $_SESSION['error'][] = "Email and password are required.";
+    header('Location: /login');
+    exit();
+}
+
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    $_SESSION['error'][] = "Invalid email format.";
+    header('Location: /login');
+    exit();
+}
 
 $account = $db->query(
     "SELECT id, employee_id, email, password, department, account_status, session_token, applicant_id
@@ -76,7 +89,7 @@ $account = $db->query(
 )->fetch_one();
 
 if (!$account) {
-    $_SESSION['error'][] = "invalid credentials.";
+    $_SESSION['error'][] = "Invalid credentials.";
     header('Location: /login');
     exit();
 }
@@ -94,13 +107,13 @@ if ($employee && isset($employee['id'])) {
 }
 
 if ($account['account_status'] !== 'Active') {
-    $_SESSION['error'][] = "account is not active.";
+    $_SESSION['error'][] = "Account is not active.";
     header('Location: /login');
     exit();
 }
 
 if (!password_verify($password, $account['password'])) {
-    $_SESSION['error'][] = "password doesn't match";
+    $_SESSION['error'][] = "Invalid credentials.";
     header('Location: /login');
     exit();
 }
@@ -128,6 +141,6 @@ $_SESSION['employee'] = [
 
 require base_path('core/middleware/employeeAuth.php');
 
-$_SESSION['success'][] = "login successful!";
+$_SESSION['success'][] = "Login successful!";
 header('Location: /');
 exit();

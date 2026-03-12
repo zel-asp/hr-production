@@ -10,16 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit();
 }
 
-$email = trim($_POST['hr_email'] ?? '');
-$password = trim($_POST['hr_password'] ?? '');
-
-if (empty($email) || empty($password)) {
-    $_SESSION['error'][] = "Email and password are required.";
-    header('Location: /login?type=hr');
-    exit();
-}
-
-// At the top of both login controllers, add this function
+// Add Turnstile validation function at the top
 function validateTurnstile($token)
 {
     $secretKey = '0x4AAAAAACp0bIlf_1ZdwAgGfG5czc9ZDUs';
@@ -30,13 +21,20 @@ function validateTurnstile($token)
     curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
         'secret' => $secretKey,
         'response' => $token,
-        'remoteip' => $_SERVER['REMOTE_ADDR']
+        'remoteip' => $_SERVER['REMOTE_ADDR'] ?? ''
     ]));
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
 
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
     curl_close($ch);
+
+    if ($curlError) {
+        error_log("cURL Error: " . $curlError);
+        return false;
+    }
 
     if ($httpCode !== 200) {
         error_log("Turnstile API error: HTTP $httpCode");
@@ -47,20 +45,36 @@ function validateTurnstile($token)
     return $result['success'] === true;
 }
 
-// After CSRF validation, add this:
+// Validate CSRF token
+if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+    $_SESSION['error'][] = "Invalid security token.";
+    header('Location: /login?type=hr');
+    exit();
+}
+
+// Validate Turnstile FIRST (before processing credentials)
 $turnstileToken = $_POST['cf-turnstile-response'] ?? '';
 if (empty($turnstileToken)) {
     $_SESSION['error'][] = "Please complete the CAPTCHA verification.";
-    header('Location: /login');
+    header('Location: /login?type=hr');
     exit();
 }
 
 if (!validateTurnstile($turnstileToken)) {
     $_SESSION['error'][] = "CAPTCHA verification failed. Please try again.";
-    header('Location: /login');
+    header('Location: /login?type=hr');
     exit();
 }
 
+// Get form data (FIX: Use correct field names)
+$email = trim($_POST['hr_email'] ?? '');
+$password = trim($_POST['hr_password'] ?? '');
+
+if (empty($email) || empty($password)) {
+    $_SESSION['error'][] = "Email and password are required.";
+    header('Location: /login?type=hr');
+    exit();
+}
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     $_SESSION['error'][] = "Invalid email format.";
