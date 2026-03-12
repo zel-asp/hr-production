@@ -9,6 +9,54 @@
         <link rel="stylesheet" href="/public/assets/css/auth.css">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     </head>
+    <style>
+        /* Add this to your stylesheet */
+
+        /* Make Turnstile container match input styling */
+        .cf-turnstile {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        /* Style the iframe container to match input dimensions */
+        .cf-turnstile iframe {
+            border-radius: 10px !important;
+            border: 1px solid #e0e0e0 !important;
+            background-color: white;
+            transition: all 0.3s ease;
+            width: 100% !important;
+            max-width: 304px;
+            /* Turnstile's natural width */
+        }
+
+        /* Add hover effect to match inputs */
+        .cf-turnstile iframe:hover {
+            border-color: #1e3a5f !important;
+            box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.1);
+        }
+
+        /* Center alignment fix */
+        .input-group.cf-turnstile {
+            display: flex;
+            justify-content: center;
+            padding: 0;
+            border: none;
+            background: transparent;
+        }
+
+        /* Remove any default input-group styles from the Turnstile container */
+        .input-group.cf-turnstile {
+            border: none;
+            box-shadow: none;
+        }
+
+        /* Ensure consistent spacing */
+        .input-group.cf-turnstile {
+            margin-bottom: 1.5rem;
+        }
+    </style>
 
     <body class="bg-gray-50 min-h-screen flex items-center justify-center p-5">
         <?php require base_path('view/partials/message.php'); ?>

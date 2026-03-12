@@ -24,7 +24,9 @@
         </div>
 
         <!-- Cloudflare Turnstile Widget -->
-        <div class="turnstile-wrapper" data-sitekey="0x4AAAAAACp0bLBkrAZE4ATN" data-theme="light" data-size="normal">
+        <div class="turnstile-wrapper">
+            <div class="cf-turnstile" data-sitekey="0x4AAAAAACp0bLBkrAZE4ATN" data-theme="light" data-size="normal">
+            </div>
         </div>
 
         <button type="submit" class="login-btn">
