@@ -10,6 +10,43 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit();
 }
 
+// Turnstile verification
+$turnstileResponse = $_POST['cf-turnstile-response'] ?? '';
+
+if (empty($turnstileResponse)) {
+    $_SESSION['error'][] = "Please complete the Turnstile verification.";
+    header('Location: /login');
+    exit();
+}
+
+// Verify Turnstile with Cloudflare
+$secretKey = '0x4AAAAAACp0bIlf_1ZdwAgGfG5czc9ZDUs'; // Your private key
+$verifyUrl = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
+
+$data = [
+    'secret' => $secretKey,
+    'response' => $turnstileResponse,
+    'remoteip' => $_SERVER['REMOTE_ADDR']
+];
+
+$options = [
+    'http' => [
+        'header' => "Content-type: application/x-www-form-urlencoded\r\n",
+        'method' => 'POST',
+        'content' => http_build_query($data)
+    ]
+];
+
+$context = stream_context_create($options);
+$result = file_get_contents($verifyUrl, false, $context);
+$verification = json_decode($result, true);
+
+if (!$verification || !$verification['success']) {
+    $_SESSION['error'][] = "Turnstile verification failed. Please try again.";
+    header('Location: /login');
+    exit();
+}
+
 $email = trim($_POST['email'] ?? '');
 $password = trim($_POST['password'] ?? '');
 

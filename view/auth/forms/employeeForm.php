@@ -7,16 +7,25 @@
         <h3 class="text-2xl font-bold text-gray-800">Employee Login</h3>
         <p class="text-gray-500 text-sm mt-1">Sign in to access your employee portal</p>
     </div>
+
+    <!-- Add Cloudflare Turnstile Script -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
     <form action="/employee-login" method="POST">
         <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+
         <div class="input-group">
             <i class="fas fa-id-card"></i>
-            <input type="email" name="email" placeholder="Employee Email">
+            <input type="email" name="email" placeholder="Employee Email" required>
         </div>
 
         <div class="input-group">
             <i class="fas fa-lock"></i>
-            <input type="password" name="password" placeholder="Password">
+            <input type="password" name="password" placeholder="Password" required>
+        </div>
+
+        <!-- Cloudflare Turnstile Widget -->
+        <div class="cf-turnstile mb-4" data-sitekey="0x4AAAAAACp0bLBkrAZE4ATN" data-theme="light" data-size="normal">
         </div>
 
         <button type="submit" class="login-btn">
@@ -24,5 +33,4 @@
             Sign In
         </button>
     </form>
-
 </div>
