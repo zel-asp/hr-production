@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Core Systems - Job Requisition Form</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    </head>
+
+    <body class="bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900 min-h-screen p-4 md:p-8 font-sans">
+        <div class="max-w-2xl mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-6">
+                <div class="inline-block bg-white/10 p-4 rounded-full mb-4">
+                    <i class="fas fa-database text-blue-300 text-4xl"></i>
+                </div>
+                <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">Core Systems</h1>
+                <p class="text-blue-200">Job Requisition Form</p>
+            </div>
+
+            <!-- Main Form Card -->
+            <div class="bg-white/95 backdrop-blur rounded-2xl shadow-2xl overflow-hidden border-2 border-blue-400">
+                <!-- Header -->
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="bg-white/20 p-2 rounded-lg mr-3">
+                                <i class="fas fa-clipboard-list text-white text-xl"></i>
+                            </div>
+                            <h2 class="text-white text-xl font-bold">Create New Requisition</h2>
+                        </div>
+                        <span class="bg-green-400 text-blue-900 px-3 py-1 rounded-full text-xs font-bold">
+                            <i class="fas fa-check-circle mr-1"></i>Core Access
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Permission Badges -->
+                <div class="mx-6 mt-3 flex flex-wrap gap-2">
+                    <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold">
+                        <i class="fas fa-plus-circle mr-1"></i>Create
+                    </span>
+                    <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold">
+                        <i class="fas fa-eye mr-1"></i>Read
+                    </span>
+                    <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold">
+                        <i class="fas fa-edit mr-1"></i>Update
+                    </span>
+                    <span class="bg-gray-200 text-gray-600 px-3 py-1 rounded-full text-xs font-semibold">
+                        <i class="fas fa-trash mr-1"></i>Delete
+                    </span>
+                </div>
+
+                <!-- Form -->
+                <form id="requisitionForm" class="p-6 space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <i class="fas fa-briefcase text-blue-500 mr-1"></i>Job Title
+                            </label>
+                            <input type="text" id="jobTitle" value="Systems Engineer" required
+                                class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="e.g., Network Engineer">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <i class="fas fa-building text-blue-500 mr-1"></i>Department
+                            </label>
+                            <select id="department" required
+                                class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="IT">IT</option>
+                                <option value="HR">HR</option>
+                                <option value="Finance">Finance</option>
+                                <option value="Operations">Operations</option>
+                                <option value="Core Systems" selected>Core Systems</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <i class="fas fa-user text-blue-500 mr-1"></i>Requested By
+                            </label>
+                            <input type="text" id="requestedBy" value="Sarah Chen - Core Lead" required
+                                class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <i class="fas fa-users text-blue-500 mr-1"></i>Positions
+                            </label>
+                            <input type="number" id="positions" value="2" min="1" required
+                                class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <i class="fas fa-calendar-alt text-blue-500 mr-1"></i>Needed By
+                            </label>
+                            <input type="date" id="neededBy" value="2026-12-31" required
+                                class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <i class="fas fa-exclamation-circle text-blue-500 mr-1"></i>Priority
+                            </label>
+                            <select id="priority"
+                                class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="low">Low</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="high">High</option>
+                                <option value="urgent">Urgent</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            <i class="fas fa-align-left text-blue-500 mr-1"></i>Justification
+                        </label>
+                        <textarea id="justification" rows="3"
+                            class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="Explain why this position is needed...">Infrastructure upgrade requires additional systems engineer for cloud migration project.</textarea>
+                    </div>
+
+                    <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                        <div class="flex items-center text-xs text-blue-700">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            <span>Core Systems has full access to create and manage requisitions</span>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="submitBtn"
+                        class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold py-3 px-4 rounded-lg hover:from-blue-700 hover:to-indigo-700 transform hover:scale-[1.01] transition-all shadow-lg flex items-center justify-center">
+                        <i class="fas fa-paper-plane mr-2"></i>
+                        Create Requisition
+                    </button>
+                </form>
+
+                <!-- Response Section -->
+                <div class="mx-6 mb-6">
+                    <div class="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                        <div class="bg-gray-100 px-4 py-2 border-b border-gray-200">
+                            <p class="text-sm font-semibold text-gray-700 flex items-center">
+                                <i class="fas fa-terminal text-blue-500 mr-2"></i>
+                                API Response
+                            </p>
+                        </div>
+                        <pre id="response"
+                            class="p-3 text-xs font-mono bg-gray-900 text-green-400 overflow-x-auto max-h-60 overflow-y-auto">// Ready to submit...</pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Back Link -->
+            <div class="text-center mt-4">
+                <a href="finance-requisition-form.html" class="text-white/70 hover:text-white text-sm">
+                    <i class="fas fa-arrow-left mr-1"></i> Switch to Finance Form
+                </a>
+            </div>
+        </div>
+
+        <script>
+            const API_BASE = 'https://humanresource.up.railway.app/api';
+            const API_KEY = 'core_system_2026_key_54321';
+
+            // Copy key to clipboard
+            window.copyKey = function () {
+                const key = document.getElementById('apiKey').textContent;
+                navigator.clipboard.writeText(key);
+                showToast('API key copied!');
+            };
+
+            // Form submission
+            document.getElementById('requisitionForm').addEventListener('submit', async function (e) {
+                e.preventDefault();
+
+                const formData = {
+                    job_title: document.getElementById('jobTitle').value,
+                    department: document.getElementById('department').value,
+                    requested_by: document.getElementById('requestedBy').value,
+                    positions: parseInt(document.getElementById('positions').value),
+                    needed_by: document.getElementById('neededBy').value,
+                    priority: document.getElementById('priority').value,
+                    justification: document.getElementById('justification').value || null
+                };
+
+                const submitBtn = document.getElementById('submitBtn');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Submitting...';
+                submitBtn.disabled = true;
+
+                try {
+                    const url = `${API_BASE}/job-requisition.php?api_key=${API_KEY}`;
+
+                    updateResponse('⏳ Submitting requisition...');
+
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(formData)
+                    });
+
+                    const data = await response.json();
+                    updateResponse(JSON.stringify(data, null, 2));
+
+                    if (data.success) {
+                        showToast('✅ Requisition created! ID: ' + data.data.id);
+                    } else {
+                        showToast('❌ Error: ' + data.error, 'error');
+                    }
+                } catch (error) {
+                    updateResponse(`Error: ${error.message}`);
+                    showToast('❌ Error: ' + error.message, 'error');
+                } finally {
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                }
+            });
+
+            // Update response display
+            function updateResponse(content) {
+                document.getElementById('response').innerHTML = content;
+            }
+
+            // Toast notification
+            function showToast(message, type = 'success') {
+                const toast = document.createElement('div');
+                toast.className = `fixed top-5 right-5 px-6 py-3 rounded-lg shadow-2xl text-white font-semibold z-50 ${type === 'success' ? 'bg-green-500' : 'bg-red-500'
+                    }`;
+                toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} mr-2"></i>${message}`;
+                document.body.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.remove();
+                }, 3000);
+            }
+
+            // Set min date
+            document.getElementById('neededBy').min = new Date().toISOString().split('T')[0];
+        </script>
+    </body>
+
+</html>

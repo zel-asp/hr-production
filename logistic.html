@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Logistics Department - Job Requisition Form</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    </head>
+
+    <body class="bg-gradient-to-br from-gray-900 via-yellow-900 to-amber-900 min-h-screen p-4 md:p-8 font-sans">
+        <div class="max-w-2xl mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-6">
+                <div class="inline-block bg-white/10 p-4 rounded-full mb-4">
+                    <i class="fas fa-truck text-yellow-300 text-4xl"></i>
+                </div>
+                <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">Logistics Department</h1>
+                <p class="text-yellow-200">Job Requisition Form</p>
+            </div>
+
+            <!-- Main Form Card -->
+            <div class="bg-white/95 backdrop-blur rounded-2xl shadow-2xl overflow-hidden border-2 border-yellow-400">
+                <!-- Header -->
+                <div class="bg-gradient-to-r from-yellow-600 to-amber-600 px-6 py-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="bg-white/20 p-2 rounded-lg mr-3">
+                                <i class="fas fa-clipboard-list text-white text-xl"></i>
+                            </div>
+                            <h2 class="text-white text-xl font-bold">Create New Requisition</h2>
+                        </div>
+                        <span class="bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-xs font-bold">
+                            <i class="fas fa-check-circle mr-1"></i>Logistics Access
+                        </span>
+                    </div>
+                </div>
+
+                <!-- API Key Display -->
+                <div class="mx-6 mt-4 bg-gray-800 rounded-lg p-3">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-gray-400 text-xs">API Key</span>
+                        <button onclick="copyKey()" class="text-gray-400 hover:text-white text-xs">
+                            <i class="fas fa-copy mr-1"></i>Copy
+                        </button>
+                    </div>
+                    <code id="apiKey" class="text-green-400 text-sm break-all">logistic_system_2026_key_98765</code>
+                </div>
+
+                <!-- Permission Badges -->
+                <div class="mx-6 mt-3 flex flex-wrap gap-2">
+                    <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-semibold">
+                        <i class="fas fa-plus-circle mr-1"></i>Create
+                    </span>
+                    <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-semibold">
+                        <i class="fas fa-eye mr-1"></i>Read
+                    </span>
+                    <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold">
+                        <i class="fas fa-users mr-1"></i>View Employees
+                    </span>
+                    <span class="bg-gray-200 text-gray-600 px-3 py-1 rounded-full text-xs font-semibold">
+                        <i class="fas fa-ban mr-1"></i>Approve
+                    </span>
+                    <span class="bg-gray-200 text-gray-600 px-3 py-1 rounded-full text-xs font-semibold">
+                        <i class="fas fa-ban mr-1"></i>Pay
+                    </span>
+                </div>
+
+                <!-- Form -->
+                <form id="requisitionForm" class="p-6 space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <i class="fas fa-briefcase text-yellow-500 mr-1"></i>Job Title
+                            </label>
+                            <input type="text" id="jobTitle" value="Logistics Coordinator" required
+                                class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                                placeholder="e.g., Supply Chain Manager">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <i class="fas fa-building text-yellow-500 mr-1"></i>Department
+                            </label>
+                            <select id="department" required
+                                class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                                <option value="Logistics" selected>Logistics</option>
+                                <option value="Warehouse">Warehouse</option>
+                                <option value="Transportation">Transportation</option>
+                                <option value="Supply Chain">Supply Chain</option>
+                                <option value="Inventory">Inventory</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <i class="fas fa-user text-yellow-500 mr-1"></i>Requested By
+                            </label>
+                            <input type="text" id="requestedBy" value="Robert Smith - Logistics Director" required
+                                class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <i class="fas fa-users text-yellow-500 mr-1"></i>Positions
+                            </label>
+                            <input type="number" id="positions" value="2" min="1" required
+                                class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <i class="fas fa-calendar-alt text-yellow-500 mr-1"></i>Needed By
+                            </label>
+                            <input type="date" id="neededBy" value="2026-12-31" required
+                                class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <i class="fas fa-exclamation-circle text-yellow-500 mr-1"></i>Priority
+                            </label>
+                            <select id="priority"
+                                class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                                <option value="low">Low</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="high">High</option>
+                                <option value="urgent">Urgent</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            <i class="fas fa-align-left text-yellow-500 mr-1"></i>Justification
+                        </label>
+                        <textarea id="justification" rows="3"
+                            class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                            placeholder="Explain why this position is needed...">Increasing warehouse operations require additional logistics coordinator for inventory management.</textarea>
+                    </div>
+
+                    <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                        <div class="flex items-center text-xs text-yellow-700">
+                            <i class="fas fa-check-circle mr-2"></i>
+                            <span>Logistics can create requisitions AND view employees by department</span>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="submitBtn"
+                        class="w-full bg-gradient-to-r from-yellow-600 to-amber-600 text-white font-semibold py-3 px-4 rounded-lg hover:from-yellow-700 hover:to-amber-700 transform hover:scale-[1.01] transition-all shadow-lg flex items-center justify-center">
+                        <i class="fas fa-paper-plane mr-2"></i>
+                        Create Requisition
+                    </button>
+                </form>
+
+                <!-- Employee Lookup Section (New) -->
+                <div class="mx-6 mb-6">
+                    <div class="border-t border-gray-200 my-4"></div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                        <i class="fas fa-search text-yellow-500 mr-2"></i>
+                        Employee Lookup by Department
+                    </h3>
+
+                    <div class="flex gap-2 mb-4">
+                        <select id="deptSelector"
+                            class="flex-1 px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                            <option value="IT">IT</option>
+                            <option value="HR">HR</option>
+                            <option value="Finance">Finance</option>
+                            <option value="Logistics" selected>Logistics</option>
+                            <option value="Operations">Operations</option>
+                        </select>
+                        <button onclick="getEmployees()"
+                            class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-all">
+                            <i class="fas fa-search mr-1"></i>Search
+                        </button>
+                    </div>
+
+                    <div id="employeeList"
+                        class="bg-gray-50 rounded-lg border border-gray-200 max-h-60 overflow-y-auto p-3 hidden">
+                        <!-- Employee list will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Response Section -->
+                <div class="mx-6 mb-6">
+                    <div class="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                        <div class="bg-gray-100 px-4 py-2 border-b border-gray-200">
+                            <p class="text-sm font-semibold text-gray-700 flex items-center">
+                                <i class="fas fa-terminal text-yellow-500 mr-2"></i>
+                                API Response
+                            </p>
+                        </div>
+                        <pre id="response"
+                            class="p-3 text-xs font-mono bg-gray-900 text-green-400 overflow-x-auto max-h-60 overflow-y-auto">// Ready to submit...</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            const API_BASE = 'https://humanresource.up.railway.app/api';
+            const API_KEY = 'logistic_system_2026_key_98765';
+
+            // Copy key to clipboard
+            window.copyKey = function () {
+                const key = document.getElementById('apiKey').textContent;
+                navigator.clipboard.writeText(key);
+                showToast('API key copied!');
+            };
+
+            // Form submission
+            document.getElementById('requisitionForm').addEventListener('submit', async function (e) {
+                e.preventDefault();
+
+                const formData = {
+                    job_title: document.getElementById('jobTitle').value,
+                    department: document.getElementById('department').value,
+                    requested_by: document.getElementById('requestedBy').value,
+                    positions: parseInt(document.getElementById('positions').value),
+                    needed_by: document.getElementById('neededBy').value,
+                    priority: document.getElementById('priority').value,
+                    justification: document.getElementById('justification').value || null
+                };
+
+                const submitBtn = document.getElementById('submitBtn');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Submitting...';
+                submitBtn.disabled = true;
+
+                try {
+                    const url = `${API_BASE}/job-requisition.php?api_key=${API_KEY}`;
+
+                    updateResponse('⏳ Submitting requisition...');
+
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(formData)
+                    });
+
+                    const data = await response.json();
+                    updateResponse(JSON.stringify(data, null, 2));
+
+                    if (data.success) {
+                        showToast('✅ Requisition created! ID: ' + data.data.id);
+                    } else {
+                        showToast('❌ Error: ' + data.error, 'error');
+                    }
+                } catch (error) {
+                    updateResponse(`Error: ${error.message}`);
+                    showToast('❌ Error: ' + error.message, 'error');
+                } finally {
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                }
+            });
+
+            // Get employees by department
+            window.getEmployees = async function () {
+                const department = document.getElementById('deptSelector').value;
+                const employeeList = document.getElementById('employeeList');
+                const responseDiv = document.getElementById('response');
+
+                employeeList.classList.remove('hidden');
+                employeeList.innerHTML = '<div class="text-center text-gray-500 py-4"><i class="fas fa-spinner fa-spin mr-2"></i>Loading employees...</div>';
+
+                try {
+                    const url = `${API_BASE}/employees.php?department=${department}&api_key=${API_KEY}`;
+
+                    const response = await fetch(url);
+                    const data = await response.json();
+
+                    // Show in main response
+                    responseDiv.innerHTML = JSON.stringify(data, null, 2);
+
+                    if (data.success && data.data?.employees?.length > 0) {
+                        const employees = data.data.employees;
+                        let html = '<div class="space-y-2 p-2">';
+                        employees.forEach(emp => {
+                            html += `
+                            <div class="bg-white p-3 rounded-lg border border-gray-200 hover:shadow-md transition-all">
+                                <div class="font-semibold text-gray-800">${emp.full_name}</div>
+                                <div class="text-xs text-gray-600 mt-1">${emp.position} • ${emp.department}</div>
+                                <div class="text-xs text-gray-500 mt-1">
+                                    <i class="fas fa-envelope mr-1"></i>${emp.email}
+                                </div>
+                            </div>
+                        `;
+                        });
+                        html += '</div>';
+                        employeeList.innerHTML = html;
+                    } else {
+                        employeeList.innerHTML = '<div class="text-center text-gray-500 py-4">No employees found in this department</div>';
+                    }
+                } catch (error) {
+                    employeeList.innerHTML = `<div class="text-center text-red-500 py-4">Error: ${error.message}</div>`;
+                    responseDiv.innerHTML = `Error: ${error.message}`;
+                }
+            };
+
+            // Update response display
+            function updateResponse(content) {
+                document.getElementById('response').innerHTML = content;
+            }
+
+            // Toast notification
+            function showToast(message, type = 'success') {
+                const toast = document.createElement('div');
+                toast.className = `fixed top-5 right-5 px-6 py-3 rounded-lg shadow-2xl text-white font-semibold z-50 ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+                toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} mr-2"></i>${message}`;
+                document.body.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.remove();
+                }, 3000);
+            }
+
+            // Set min date
+            document.getElementById('neededBy').min = new Date().toISOString().split('T')[0];
+        </script>
+    </body>
+
+</html>
