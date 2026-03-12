@@ -63,6 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.update-status-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
             const id = btn.dataset.id;
+            const hourly_rate = btn.dataset.rate;
             const csrf = btn.dataset.csrf;
             const row = document.querySelector(`.applicant-row[data-id="${id}"]`);
             const select = row.querySelector('.status-select');
@@ -101,7 +102,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         status,
                         start_date: startDate,
                         interview_date: interviewDate,
-                        csrf_token: csrf
+                        csrf_token: csrf,
+                        hourly_rate: hourly_rate
                     })
                 });
 
@@ -532,7 +534,13 @@ function applyHcmFilter() {
     const search = document.querySelector('input[name="hcm_search"]').value;
     if (search) {
         url.searchParams.set('hcm_search', search);
+    } else {
+        url.searchParams.delete('hcm_search');
     }
+
+    // Always move to employee list section
+    url.hash = 'employeeList';
 
     window.location.href = url.toString();
 }
+

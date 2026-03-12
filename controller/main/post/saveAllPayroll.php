@@ -52,47 +52,98 @@ if ($currentDay <= 5) {
 try {
     $db->beginTransaction();
 
-    // Get all active employees with their attendance and claims data
+    // Check if there are any approved attendance summaries for this period
+    $approvedCount = $db->query("
+        SELECT COUNT(*) as count 
+        FROM attendance_summary 
+        WHERE period_start = ? 
+        AND period_end = ?
+        AND status = 'approved'
+    ", [$periodStart, $periodEnd])->fetch_one()['count'] ?? 0;
+
+    if ($approvedCount === 0) {
+        throw new Exception('No approved attendance summaries found for this period. Please approve attendance first.');
+    }
+
+    // Get all active employees with their APPROVED attendance summaries and claims data
     $employees = $db->query("
         SELECT 
             e.id,
             e.full_name,
             e.hourly_rate,
+            -- Use APPROVED attendance summary instead of raw attendance
             COALESCE((
-                SELECT SUM(regular_hours) 
-                FROM attendance 
+                SELECT total_regular_hours 
+                FROM attendance_summary 
                 WHERE employee_id = e.id 
-                AND date BETWEEN ? AND ?
-                AND status = 'clocked_out'
+                AND period_start = ? 
+                AND period_end = ?
+                AND status = 'approved'
             ), 0) as total_regular_hours,
             COALESCE((
-                SELECT SUM(overtime_hours) 
-                FROM attendance 
+                SELECT total_overtime_hours 
+                FROM attendance_summary 
                 WHERE employee_id = e.id 
-                AND date BETWEEN ? AND ?
-                AND status = 'clocked_out'
+                AND period_start = ? 
+                AND period_end = ?
+                AND status = 'approved'
             ), 0) as total_overtime_hours,
+            -- Claims using expense_date instead of approved_at
             COALESCE((
                 SELECT SUM(amount) 
                 FROM expense_claims 
                 WHERE employee_id = e.id 
                 AND status = 'Approved'
-                AND approved_at BETWEEN ? AND ?
+                AND expense_date BETWEEN ? AND ?
             ), 0) as claims_amount,
             (
                 SELECT COUNT(*) 
                 FROM expense_claims 
                 WHERE employee_id = e.id 
                 AND status = 'Approved'
-                AND approved_at BETWEEN ? AND ?
-            ) as claims_count
+                AND expense_date BETWEEN ? AND ?
+            ) as claims_count,
+            -- Get attendance summary status for reference
+            (
+                SELECT status 
+                FROM attendance_summary 
+                WHERE employee_id = e.id 
+                AND period_start = ? 
+                AND period_end = ?
+            ) as attendance_status
         FROM employees e
         WHERE e.status IN ('Active', 'Regular', 'Probationary')
+        AND (
+            -- Only include employees who have either approved attendance OR approved claims
+            EXISTS (
+                SELECT 1 FROM attendance_summary 
+                WHERE employee_id = e.id 
+                AND period_start = ? 
+                AND period_end = ?
+                AND status = 'approved'
+            )
+            OR EXISTS (
+                SELECT 1 FROM expense_claims 
+                WHERE employee_id = e.id 
+                AND status = 'Approved'
+                AND expense_date BETWEEN ? AND ?
+            )
+        )
     ", [
+        // Attendance summary params (4)
         $periodStart,
         $periodEnd,
         $periodStart,
         $periodEnd,
+        // Claims params (4) - using expense_date
+        $periodStart,
+        $periodEnd,
+        $periodStart,
+        $periodEnd,
+        // Attendance status params (2)
+        $periodStart,
+        $periodEnd,
+        // EXISTS checks (4)
         $periodStart,
         $periodEnd,
         $periodStart,
@@ -100,7 +151,7 @@ try {
     ])->find();
 
     if (empty($employees)) {
-        throw new Exception('No employees found for payroll processing');
+        throw new Exception('No employees with approved data found for payroll processing');
     }
 
     // Get statutory deductions
@@ -111,11 +162,18 @@ try {
 
     $processed = 0;
     $updated = 0;
+    $skipped = 0;
     $errors = [];
 
     foreach ($employees as $emp) {
         try {
-            // Calculate gross pay
+            // Skip if no approved attendance AND no claims
+            if ($emp['total_regular_hours'] == 0 && $emp['total_overtime_hours'] == 0 && $emp['claims_amount'] == 0) {
+                $skipped++;
+                continue;
+            }
+
+            // Calculate gross pay (only if hours exist)
             $regularPay = $emp['total_regular_hours'] * ($emp['hourly_rate'] ?: 0);
             $overtimePay = $emp['total_overtime_hours'] * ($emp['hourly_rate'] ?: 0) * 1.25;
             $grossPay = $regularPay + $overtimePay;
@@ -140,7 +198,7 @@ try {
                         total_deductions = ?,
                         net_pay = ?,
                         claims = ?,
-                        status = 'Processed',
+                        status = 'Processing',
                         generated_at = NOW()
                     WHERE id = ?
                 ", [
@@ -162,7 +220,7 @@ try {
                         total_regular_hours, total_overtime_hours, hourly_rate,
                         gross_pay, total_deductions, net_pay, claims,
                         status, generated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Processed', NOW())
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Processing', NOW())
                 ", [
                     $emp['id'],
                     $periodStart,
@@ -184,7 +242,17 @@ try {
 
     $db->commit();
 
-    $message = "Payroll processed successfully: {$processed} new, {$updated} updated";
+    // Build detailed success message
+    $messageParts = [];
+    if ($processed > 0)
+        $messageParts[] = "{$processed} new";
+    if ($updated > 0)
+        $messageParts[] = "{$updated} updated";
+    if ($skipped > 0)
+        $messageParts[] = "{$skipped} skipped (no data)";
+
+    $message = "Payroll processed successfully: " . implode(', ', $messageParts);
+
     if (!empty($errors)) {
         $message .= " with " . count($errors) . " errors";
     }
@@ -196,6 +264,9 @@ try {
             $_SESSION['error'][] = $error;
         }
     }
+
+    // Add summary of approved counts
+    $_SESSION['success'][] = "Processed based on {$approvedCount} approved attendance summaries";
 
 } catch (Exception $e) {
     $db->rollBack();

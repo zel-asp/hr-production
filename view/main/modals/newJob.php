@@ -59,9 +59,9 @@
                         class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 transition-all duration-200 text-gray-700 appearance-none"
                         name="shift"
                         style="background-image: url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'16\' height=\'16\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23666\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><polyline points=\'6 9 12 15 18 9\'/></svg>'); background-repeat: no-repeat; background-position: right 1rem center; background-size: 1rem;">
-                        <option value="evening" selected>Evening (4pm-12am)</option>
-                        <option value="gy">Graveyard (12am-6am)</option>
-                        <option value="morning">Morning (6am-3pm)</option>
+                        <option value="2" selected>Evening (4pm-12am)</option>
+                        <option value="3">Graveyard (12am-6am)</option>
+                        <option value="1">Morning (6am-3pm)</option>
                     </select>
                 </div>
 
@@ -70,7 +70,7 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">
                         Rate Per Hour (₱) <span class="text-red-500">*</span>
                     </label>
-                    <input type="number" step="10" min="0" name="rate_per_hour" placeholder="e.g. 150"
+                    <input type="number" min="0" name="rate_per_hour" placeholder="e.g. 150"
                         class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 transition-all duration-200 text-gray-700"
                         required>
                 </div>
@@ -83,8 +83,7 @@
                         Cancel
                     </button>
                     <button name="post" type="submit"
-                        class="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg transition-colors duration-200 flex items-center gap-2"
-                        onclick="submitJobPosting(event)">
+                        class="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg transition-colors duration-200 flex items-center gap-2">
                         <i class="fas fa-plus-circle"></i>
                         Create Posting
                     </button>

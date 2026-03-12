@@ -26,9 +26,11 @@
         </div>
 
         <!-- Update Form -->
-        <form method="POST" action="/profile/update" class="space-y-6">
+        <form method="POST" action="/profile-update" class="space-y-6">
             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
             <input type="hidden" name="__method" value="PATCH">
+            <input type="hidden" name="employee_number"
+                value="<?= htmlspecialchars($employeeInfo['employee_number'] ?? 'N/A') ?>">
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Left Column - Personal Information -->
@@ -38,21 +40,21 @@
                     <div>
                         <label for="full_name" class="block text-xs font-medium text-gray-500 mb-1">Full Name</label>
                         <input type="text" id="full_name" name="full_name"
-                            value="<?= htmlspecialchars($employeeInfo['full_name'] ?? '') ?>"
+                            value="<?= htmlspecialchars($employeeInfo['full_name'] ?? ($_POST['full_name'] ?? '')) ?>"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary">
                     </div>
 
                     <div>
                         <label for="email" class="block text-xs font-medium text-gray-500 mb-1">Email Address</label>
                         <input type="email" id="email" name="email"
-                            value="<?= htmlspecialchars($employeeInfo['email'] ?? '') ?>"
+                            value="<?= htmlspecialchars($employeeInfo['email'] ?? ($_POST['email'] ?? '')) ?>"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary">
                     </div>
 
                     <div>
                         <label for="phone" class="block text-xs font-medium text-gray-500 mb-1">Phone Number</label>
                         <input type="tel" id="phone" name="phone"
-                            value="<?= htmlspecialchars($employeeInfo['phone'] ?? '') ?>"
+                            value="<?= htmlspecialchars($employeeInfo['phone'] ?? ($_POST['phone'] ?? '')) ?>"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary">
                     </div>
                 </div>
@@ -60,14 +62,6 @@
                 <!-- Right Column - Password Change -->
                 <div class="space-y-4">
                     <h4 class="text-sm font-medium text-gray-700 border-b border-gray-200 pb-2">Change Password</h4>
-
-                    <div>
-                        <label for="current_password" class="block text-xs font-medium text-gray-500 mb-1">Current
-                            Password</label>
-                        <input type="password" id="current_password" name="current_password"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary">
-                    </div>
-
                     <div>
                         <label for="new_password" class="block text-xs font-medium text-gray-500 mb-1">New Password</label>
                         <input type="password" id="new_password" name="new_password"
@@ -97,7 +91,7 @@
         <!-- Employment Details Grid -->
         <div class="mt-8 pt-6 border-t border-gray-200">
             <h4 class="text-sm font-medium text-gray-700 mb-3">Employment Details</h4>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <div class="bg-gray-50 rounded-lg p-3">
                     <span class="text-xs text-gray-500 block">Department</span>
                     <span
@@ -107,10 +101,6 @@
                     <span class="text-xs text-gray-500 block">Employment Type</span>
                     <span
                         class="text-sm font-medium text-gray-900"><?= htmlspecialchars($employeeInfo['status'] ?? 'N/A') ?></span>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-3">
-                    <span class="text-xs text-gray-500 block">Manager</span>
-                    <span class="text-sm font-medium text-gray-900">Sarah V.</span>
                 </div>
                 <div class="bg-gray-50 rounded-lg p-3">
                     <span class="text-xs text-gray-500 block">Location</span>
@@ -156,7 +146,7 @@
                 <!-- Account Status -->
                 <?php if ($employeeAccount): ?>
                     <span class="px-3 py-1.5 text-xs font-medium rounded-md border
-                        <?= ($employeeAccount['account_status'] ?? '') == 'Active'
+                        <?= ($employeeAccount['account_status'] ?? $_POST['email']) == 'Active'
                             ? 'border-green-200 bg-green-50 text-green-700'
                             : 'border-red-200 bg-red-50 text-red-700' ?>">
                         <i class="fa-solid fa-shield mr-1"></i>

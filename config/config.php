@@ -2,9 +2,11 @@
 
 return [
     'database' => [
-        'host' => 'localhost',
-        'port' => '3307',
-        'dbname' => 'hrdb',
-        'charser' => 'utf8mb4'
+        'host' => 'sql101.infinityfree.com',
+        'port' => '3306',
+        'dbname' => 'if0_41364870_hr_database',
+        'charset' => 'utf8mb4',
+        'username' => 'if0_41364870',
+		'password' => 'N2yKRiTrARDe'
     ]
 ];

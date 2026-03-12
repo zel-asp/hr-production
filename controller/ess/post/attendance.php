@@ -16,7 +16,7 @@ require base_path('core/middleware/employeeAuth.php');
 $config = require base_path('config/config.php');
 $db = new Database($config['database']);
 
-// Set MySQL timezone for this connection to match PHP
+// Force MySQL timezone to +08:00
 try {
     $db->query("SET time_zone = '+08:00'");
 } catch (\Throwable $th) {
@@ -24,7 +24,7 @@ try {
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    ob_clean(); // Clear any output
+    ob_clean();
     http_response_code(405);
     header('Content-Type: application/json');
     echo json_encode(['success' => false, 'message' => 'Method not allowed']);
@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $input = json_decode(file_get_contents('php://input'), true);
 
 if (json_last_error() !== JSON_ERROR_NONE) {
-    ob_clean(); // Clear any output
+    ob_clean();
     http_response_code(400);
     header('Content-Type: application/json');
     echo json_encode(['success' => false, 'message' => 'Invalid JSON input']);
@@ -42,7 +42,7 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 }
 
 if (!isset($input['csrf_token']) || !isset($_SESSION['csrf_token']) || $input['csrf_token'] !== $_SESSION['csrf_token']) {
-    ob_clean(); // Clear any output
+    ob_clean();
     http_response_code(403);
     header('Content-Type: application/json');
     echo json_encode(['success' => false, 'message' => 'Invalid CSRF token']);
@@ -51,6 +51,9 @@ if (!isset($input['csrf_token']) || !isset($_SESSION['csrf_token']) || $input['c
 
 $action = $input['action'] ?? '';
 $attendanceId = $input['attendance_id'] ?? null;
+
+// Log the request for debugging
+error_log("Attendance request - Action: $action, Attendance ID: " . ($attendanceId ?? 'null'));
 
 $employeeData = $_SESSION['employee']['employee_record_id'] ?? null;
 if (is_array($employeeData) && isset($employeeData['id'])) {
@@ -67,39 +70,44 @@ if (!$employeeId) {
     exit();
 }
 
+$today = date('Y-m-d');
+$now = date('Y-m-d H:i:s');
+$currentTime = date('H:i:s');
+
 try {
+    // Get employee shift information
     $employeeShift = $db->query("
         SELECT s.*, e.shift_id 
         FROM employees e
         LEFT JOIN shifts s ON e.shift_id = s.id
         WHERE e.id = ?
     ", [$employeeId])->fetch_one();
-} catch (Exception $e) {
-    error_log("Database error in attendance.php: " . $e->getMessage());
-    ob_clean();
-    http_response_code(500);
-    header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'message' => 'Database error occurred']);
-    exit();
-}
 
-$today = date('Y-m-d');
-$now = date('Y-m-d H:i:s');
-$currentTime = date('H:i:s');
-
-try {
     $db->beginTransaction();
 
     switch ($action) {
         case 'clock_in':
+            // Check if there's ANY active attendance (not clocked_out) for today
             $existing = $db->query(
-                "SELECT id FROM attendance 
+                "SELECT id, status FROM attendance 
                 WHERE employee_id = ? AND date = ? AND status != 'clocked_out'",
                 [$employeeId, $today]
             )->fetch_one();
 
             if ($existing) {
-                throw new Exception('You are already clocked in');
+                // Log what we found
+                error_log("Found existing active attendance: ID {$existing['id']} with status {$existing['status']}");
+
+                $db->rollBack();
+                ob_clean();
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'You are already clocked in',
+                    'attendance_id' => $existing['id'],
+                    'status' => $existing['status']
+                ]);
+                exit();
             }
 
             // Calculate late minutes based on shift
@@ -159,8 +167,20 @@ try {
             break;
 
         case 'pause':
+            // First, verify we have a valid attendance ID or find one
             if (!$attendanceId) {
-                throw new Exception('No active attendance record');
+                $activeAttendance = $db->query(
+                    "SELECT id FROM attendance 
+                    WHERE employee_id = ? AND date = ? AND status = 'clocked_in'",
+                    [$employeeId, $today]
+                )->fetch_one();
+
+                if ($activeAttendance) {
+                    $attendanceId = $activeAttendance['id'];
+                    error_log("Auto-found attendance ID $attendanceId for pause");
+                } else {
+                    throw new Exception('No active shift found to pause');
+                }
             }
 
             // Verify attendance belongs to employee and is clocked in
@@ -171,10 +191,10 @@ try {
             )->fetch_one();
 
             if (!$attendance) {
-                throw new Exception('Cannot pause - no active shift found');
+                throw new Exception('Cannot pause - no active shift found or shift is already paused');
             }
 
-            // Update to paused status using NOW() for MySQL time
+            // Update to paused status
             $db->query(
                 "UPDATE attendance 
                 SET pause_start = NOW(), status = 'paused', updated_at = NOW() 
@@ -200,32 +220,45 @@ try {
                 'success' => true,
                 'message' => 'Shift paused',
                 'status' => 'paused',
-                'elapsed_seconds' => $currentAttendance['elapsed'] ?? 0,
-                'pause_total' => $currentAttendance['pause_total'] ?? 0,
+                'elapsed_seconds' => (int) ($currentAttendance['elapsed'] ?? 0),
+                'pause_total' => (int) ($currentAttendance['pause_total'] ?? 0),
                 'attendance_id' => $attendanceId
             ]);
             break;
 
         case 'resume':
+            // First, verify we have a valid attendance ID or find one
             if (!$attendanceId) {
-                throw new Exception('No active attendance record');
-            }
+                $pausedAttendance = $db->query(
+                    "SELECT id, pause_start, pause_total FROM attendance 
+                    WHERE employee_id = ? AND date = ? AND status = 'paused'",
+                    [$employeeId, $today]
+                )->fetch_one();
 
-            //  pause start time
-            $attendance = $db->query(
-                "SELECT pause_start, pause_total FROM attendance 
-                WHERE id = ? AND employee_id = ? AND status = 'paused'",
-                [$attendanceId, $employeeId]
-            )->fetch_one();
+                if ($pausedAttendance) {
+                    $attendanceId = $pausedAttendance['id'];
+                    $attendance = $pausedAttendance;
+                    error_log("Auto-found attendance ID $attendanceId for resume");
+                } else {
+                    throw new Exception('No paused shift found to resume');
+                }
+            } else {
+                // Get pause start time
+                $attendance = $db->query(
+                    "SELECT pause_start, pause_total FROM attendance 
+                    WHERE id = ? AND employee_id = ? AND status = 'paused'",
+                    [$attendanceId, $employeeId]
+                )->fetch_one();
+            }
 
             if (!$attendance || !$attendance['pause_start']) {
                 throw new Exception('Cannot resume - no paused shift found');
             }
 
-            // Calculate pause duration in minutes using NOW()
+            // Calculate pause duration in minutes
             $pauseMinutes = round((strtotime($now) - strtotime($attendance['pause_start'])) / 60);
 
-            //  add pause minutes and set status back to clocked_in
+            // Add pause minutes and set status back to clocked_in
             $db->query(
                 "UPDATE attendance 
                 SET pause_total = pause_total + ?, 
@@ -254,29 +287,45 @@ try {
                 'success' => true,
                 'message' => 'Shift resumed',
                 'status' => 'clocked_in',
-                'elapsed_seconds' => $currentAttendance['elapsed'] ?? 0,
-                'pause_total' => $currentAttendance['new_pause_total'] ?? 0,
+                'elapsed_seconds' => (int) ($currentAttendance['elapsed'] ?? 0),
+                'pause_total' => (int) ($currentAttendance['new_pause_total'] ?? 0),
                 'attendance_id' => $attendanceId
             ]);
             break;
 
         case 'clock_out':
+            // First, verify we have a valid attendance ID or find one
             if (!$attendanceId) {
-                throw new Exception('No active attendance record');
-            }
+                $activeAttendance = $db->query(
+                    "SELECT id, clock_in, pause_total, late_minutes, shift_id, status FROM attendance 
+                    WHERE employee_id = ? AND date = ? AND status != 'clocked_out'",
+                    [$employeeId, $today]
+                )->fetch_one();
 
-            // Get attendance record
-            $attendance = $db->query(
-                "SELECT clock_in, pause_total, late_minutes, shift_id FROM attendance 
-                WHERE id = ? AND employee_id = ? AND status != 'clocked_out'",
-                [$attendanceId, $employeeId]
-            )->fetch_one();
+                if ($activeAttendance) {
+                    $attendanceId = $activeAttendance['id'];
+                    $attendance = $activeAttendance;
+                    error_log("Auto-found attendance ID $attendanceId with status {$activeAttendance['status']} for clock out");
+                } else {
+                    throw new Exception('No active shift found to clock out');
+                }
+            } else {
+                // Get attendance record
+                $attendance = $db->query(
+                    "SELECT clock_in, pause_total, late_minutes, shift_id, status FROM attendance 
+                    WHERE id = ? AND employee_id = ? AND status != 'clocked_out'",
+                    [$attendanceId, $employeeId]
+                )->fetch_one();
+            }
 
             if (!$attendance) {
                 throw new Exception('No active shift found');
             }
 
-            // Calculate total worked time using NOW()
+            // Log the attendance status for debugging
+            error_log("Clocking out attendance ID $attendanceId with status {$attendance['status']}");
+
+            // Calculate total worked time
             $clockIn = strtotime($attendance['clock_in']);
             $clockOut = strtotime($now);
             $pauseMinutes = $attendance['pause_total'] ?? 0;
@@ -301,7 +350,7 @@ try {
                 }
             }
 
-            // Update attendance record using NOW()
+            // Update attendance record
             $db->query(
                 "UPDATE attendance 
                 SET clock_out = NOW(),
@@ -383,7 +432,6 @@ try {
 
 // End output buffering and flush
 ob_end_flush();
-
 
 // attendance summary for periods ending on 5th and 20th of each month
 function updateAttendanceSummary($db, $employeeId, $regularHours, $overtimeHours, $lateMinutes = 0)

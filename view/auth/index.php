@@ -5,8 +5,8 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>HR Portal · Employee & HR</title>
-        <link rel="stylesheet" href="/assets/css/output.css">
-        <link rel="stylesheet" href="/assets/css/auth.css">
+        <link rel="stylesheet" href="/public/assets/css/output.css">
+        <link rel="stylesheet" href="/public/assets/css/auth.css">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     </head>
 
@@ -126,7 +126,7 @@
             </div>
         </div>
 
-        <script src="/assets/js/auth.js"></script>
+        <script src="/public/assets/js/auth.js"></script>
 
 
     </body>

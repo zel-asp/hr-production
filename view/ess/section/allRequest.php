@@ -1,5 +1,14 @@
 <div class="bg-white border border-gray-200 rounded-md p-5 shadow-sm">
-    <h2 class="text-lg font-semibold text-gray-800 mb-4">Leave Requests</h2>
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-base font-semibold text-gray-700">Leave Requests</h2>
+        <button id="openLeaveModalBtn" onclick="openModal('leaveModal')"
+            class="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition">
+            <i class="fa-solid fa-plus"></i>
+            <span>request leave</span>
+        </button>
+    </div>
+
+
 
     <!-- Summary Stats -->
     <div class="grid grid-cols-3 gap-2 mb-4">

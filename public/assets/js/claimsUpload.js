@@ -1,4 +1,4 @@
-import supabaseClient from '/assets/js/supabase.js';
+import supabaseClient from '/public/assets/js/supabase.js';
 
 // Wait for DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', function () {

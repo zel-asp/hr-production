@@ -22,31 +22,38 @@ document.addEventListener('DOMContentLoaded', function () {
 
     console.log('Timer initialized with status:', currentStatus, 'seconds:', elapsedSeconds);
 
+    // Ensure elapsedSeconds is a valid number and not negative
+    elapsedSeconds = Math.max(0, parseInt(elapsedSeconds) || 0);
+
+    // Update display immediately with the current elapsed seconds
+    updateTimerDisplay(elapsedSeconds);
+
     // Start timer if clocked in
     if (currentStatus === 'clocked_in') {
+        console.log('Starting timer from', elapsedSeconds, 'seconds');
         startTimer(elapsedSeconds);
     } else if (currentStatus === 'paused') {
+        console.log('Paused state, displaying', elapsedSeconds, 'seconds');
         updateTimerDisplay(elapsedSeconds);
     }
 
     // Set shift start time if available
     if (config.shiftStartTime) {
-        const shiftStart = new Date(config.shiftStartTime);
+        // Parse the date string and ensure it's treated as local time
+        const shiftStart = new Date(config.shiftStartTime + ' UTC+8');
         const shiftStartEl = document.getElementById('shiftStartTime');
         if (shiftStartEl) {
-            shiftStartEl.textContent = 'Started at ' + shiftStart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            shiftStartEl.textContent = 'Started at ' + shiftStart.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            });
         }
     }
 });
 
 function handleAttendance(action) {
     const csrfToken = config.csrfToken;
-
-    // For actions that require attendance_id, check if we have it
-    if ((action === 'pause' || action === 'resume' || action === 'clock_out') && !currentAttendanceId) {
-        showNotification('No active shift found. Please clock in first.', 'error');
-        return;
-    }
 
     // Show loading state
     const buttons = document.querySelectorAll('#attendanceButtons button');
@@ -66,20 +73,6 @@ function handleAttendance(action) {
         })
     })
         .then(async response => {
-            // First check if response is ok
-            if (!response.ok) {
-                const text = await response.text();
-                try {
-                    const errorData = JSON.parse(text);
-                    throw new Error(errorData.message || `HTTP error ${response.status}`);
-                } catch (e) {
-                    // If response is not JSON, show first part of response for debugging
-                    console.error('Non-JSON response:', text.substring(0, 200));
-                    throw new Error(`Server returned ${response.status}: ${response.statusText}`);
-                }
-            }
-
-            // Try to parse JSON
             const text = await response.text();
             console.log('Raw response:', text);
 
@@ -92,14 +85,19 @@ function handleAttendance(action) {
         })
         .then(data => {
             if (data.success) {
+                // Update all tracking variables
                 currentAttendanceId = data.attendance_id;
                 currentStatus = data.status;
                 pauseTotal = data.pause_total || 0;
 
-                // Update UI
+                // Also update the config object for future reference
+                config.currentAttendanceId = data.attendance_id;
+                config.currentStatus = data.status;
+                config.pauseTotal = data.pause_total || 0;
+
+                // Update UI with the elapsed seconds from server
                 updateUIForStatus(data.status, data.elapsed_seconds || 0);
 
-                // Show success message
                 showNotification(data.message, 'success');
 
                 // If clocked in, update shift start time
@@ -107,11 +105,30 @@ function handleAttendance(action) {
                     const now = new Date();
                     const shiftStartEl = document.getElementById('shiftStartTime');
                     if (shiftStartEl) {
-                        shiftStartEl.textContent = 'Started at ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        shiftStartEl.textContent = 'Started at ' + now.toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: true
+                        });
                     }
                 }
             } else {
-                showNotification(data.message, 'error');
+                // If server says we're already clocked in, update our local state
+                if (data.attendance_id && data.status) {
+                    console.log('Updating local state from server response:', data);
+                    currentAttendanceId = data.attendance_id;
+                    currentStatus = data.status;
+                    config.currentAttendanceId = data.attendance_id;
+                    config.currentStatus = data.status;
+
+                    // Force a page refresh to get correct elapsed time
+                    showNotification('Refreshing to sync attendance state...', 'info');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    showNotification(data.message, 'error');
+                }
             }
         })
         .catch(error => {
@@ -122,7 +139,6 @@ function handleAttendance(action) {
             buttons.forEach(btn => btn.disabled = false);
         });
 }
-
 function updateUIForStatus(status, elapsedSeconds) {
     // Hide all buttons first
     const clockInBtn = document.getElementById('clockInBtn');
@@ -172,7 +188,8 @@ function startTimer(initialSeconds = 0) {
     // Stop any existing timer
     stopTimer();
 
-    let seconds = initialSeconds;
+    // Ensure initial seconds is a number and not negative
+    let seconds = Math.max(0, parseInt(initialSeconds) || 0);
 
     // Update display immediately
     updateTimerDisplay(seconds);
@@ -207,6 +224,9 @@ function updateTimerDisplay(seconds) {
         if (!hoursEl || !minutesEl || !secondsEl) return;
     }
 
+    // Ensure seconds is a number
+    seconds = parseInt(seconds) || 0;
+
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
@@ -221,6 +241,8 @@ function updateTimerDisplay(seconds) {
         const overtime = Math.floor((seconds - 28800) / 3600);
         overtimeIndicator.classList.remove('hidden');
         overtimeHoursEl.textContent = overtime;
+    } else if (overtimeIndicator) {
+        overtimeIndicator.classList.add('hidden');
     }
 }
 

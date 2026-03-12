@@ -36,13 +36,13 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">From</label>
                     <input type="date" name="start_date" required
                         class="w-full border border-gray-200 rounded-md p-2.5 text-sm bg-gray-100 focus:ring-2 focus:ring-[#b7d0e8] outline-none"
-                        value="<?= date('Y-m-d') ?>">
+                        value="<?= date('Y-m-d') ?>" min="<?= date('Y-m-d') ?>">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">To</label>
                     <input type="date" name="end_date" required
                         class="w-full border border-gray-200 rounded-md p-2.5 text-sm bg-gray-100 focus:ring-2 focus:ring-[#b7d0e8] outline-none"
-                        value="<?= date('Y-m-d', strtotime('+1 day')) ?>">
+                        value="<?= date('Y-m-d', strtotime('+1 day')) ?>" min="<?= date('Y-m-d') ?>">
                 </div>
             </div>
 

@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Sanitize inputs
     $position = trim($_POST['position']);
-    $salary = trim($_POST['salary']);
+    $salary = trim($_POST['rate_per_hour']);
     $shift = trim($_POST['shift']);
     $location = trim($_POST['location']);
     $department = trim($_POST['department']);

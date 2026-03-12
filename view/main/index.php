@@ -5,7 +5,7 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
         <title>Hotel & Restaurant HR </title>
-        <link rel="stylesheet" href="/assets/css/output.css">
+        <link rel="stylesheet" href="/public/assets/css/output.css">
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     </head>
@@ -255,8 +255,8 @@
         <?php require base_path('view/main/modals/viewEmployeeDetails.php'); ?>
 
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <script src="/assets/js/main.js"></script>
-        <script src="/assets/js/analytics.js"></script>
+        <script src="/public/assets/js/main.js"></script>
+        <script src="/public/assets/js/analytics.js"></script>
 
     </body>
 

@@ -5,9 +5,42 @@ $router->post('/employee-login', 'controller/auth/employee.php');
 $router->post('/hr-login', 'controller/auth/hrLogin.php');
 $router->post('/logout', 'controller/auth/logout.php');
 
+// ============ NEW API ROUTES ============
+// Employees API
+$router->get('/api/employees', 'api/employees.php');
+
+// Applicants API
+$router->get('/api/applicants', 'api/applicants.php');
+$router->get('/api/test', 'api/test.php');
+
+// Compensation API
+$router->get('/api/compensation', 'api/compensation.php');
+$router->post('/api/compensation', 'api/compensation.php');
+$router->put('/api/compensation', 'api/compensation.php');
+$router->delete('/api/compensation', 'api/compensation.php');
+
+// Job Requisition API
+$router->get('/api/job-requisitions', 'api/job-requisition.php');
+$router->post('/api/job-requisitions', 'api/job-requisition.php');
+$router->put('/api/job-requisitions', 'api/job-requisition.php');
+$router->delete('/api/job-requisitions', 'api/job-requisition.php');
+$router->patch('/api/job-requisitions', 'api/job-requisition.php');
+
+// Claims API
+$router->get('/api/claims', 'api/claims.php');
+$router->post('/api/claims', 'api/claims.php');
+
+// Payroll API
+$router->get('/api/payroll', 'api/payroll.php');
+$router->post('/api/payroll', 'api/payroll.php');
+
+// ============ END NEW API ROUTES ============
+
 // MAIN DASHBOARD & JOB MANAGEMENT
 $router->get('/', 'controller/ess/get/ess.php');
 $router->get('/main', 'controller/main/get/main.php');
+$router->patch('/profile-update', 'controller/ess/update/updateProfile.php');
+$router->post('/generate-payslip-pdf', 'controller/ess/post/generate-payslip-pdf.php');
 
 //requisition
 $router->patch('/update-requisition-status', 'controller/main/update/updateRequisition.php');
@@ -47,6 +80,7 @@ $router->patch('/update-performance-improvement-plan', 'controller/main/update/u
 $router->post('/benefits/enroll', 'controller/main/post/enrollBenefits.php');
 $router->post('/leave_request', 'controller/ess/post/leaveRequest.php');
 $router->delete('/remove-request', 'controller/ess/delete/leaveDelete.php');
+$router->get('/export/employees-csv', 'controller/main/get/excelEmployees.php');
 
 // ATTENDANCE
 $router->post('/attendance/handle', 'controller/ess/post/attendance.php');
@@ -74,6 +108,7 @@ $router->post('/submit-claims', 'controller/ess/post/submitClaims.php');
 $router->post('/upload-attendance', 'controller/main/post/schedule.php');
 $router->post('/request-swap-schedule', 'controller/ess/post/swapRequest.php');
 $router->get('/download-upload', 'controller/main/get/download-upload.php');
+$router->get('/download-schedule', 'controller/main/get/download-schedule.php');
 $router->patch('/approve-swap-request', 'controller/main/update/approveSwap.php');
 $router->patch('/reject-swap-request', 'controller/main/update/rejectSwap.php');
 
@@ -89,3 +124,12 @@ $router->post('/send-requirement-notification', 'controller/main/post/requiremen
 //payroll
 $router->post('/payroll-summary', 'controller/main/post/savePayroll.php');
 $router->post('/process-all-payroll', 'controller/main/post/saveAllPayroll.php');
+
+$router->patch('/approve-timesheet', 'controller/main/update/approveTimesheet.php');
+$router->patch('/updateClaimStatus', 'controller/main/update/updateClaimStatus.php');
+
+
+$router->post('/assign-interventions', 'controller/main/post/assignIntervention.php');
+$router->patch('/update-intervention', 'controller/main/update/updateIntervention.php');
+
+$router->get('/generate-payslip', 'controller/ess/get/generate-payslip.php');

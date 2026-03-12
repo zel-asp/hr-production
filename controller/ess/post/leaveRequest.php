@@ -12,7 +12,7 @@ $db = new Database($config['database']);
 // ========================
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     $_SESSION['error'][] = "Invalid request method.";
-    header('Location: /');
+    header('Location: /?tab=leave');
     exit();
 }
 
@@ -54,13 +54,13 @@ if (!$employeeRecordId) {
 
 // Verify employee exists in database
 $employee = $db->query(
-    "SELECT id, employee_number, full_name, email FROM employees WHERE id = ?",
+    "SELECT id, employee_number, full_name, email, hired_date FROM employees WHERE id = ?",
     [$employeeRecordId]
 )->fetch_one();
 
 if (!$employee) {
     $_SESSION['error'][] = "Employee record not found.";
-    header('Location: /');
+    header('Location: /?tab=leave');
     exit();
 }
 
@@ -76,14 +76,14 @@ $reason = trim($_POST['reason'] ?? '');
 $validLeaveTypes = ['Annual Leave', 'Sick Leave', 'Personal Day', 'Remote Work'];
 if (!in_array($leaveType, $validLeaveTypes)) {
     $_SESSION['error'][] = "Invalid leave type selected.";
-    header('Location: /');
+    header('Location: /?tab=leave');
     exit();
 }
 
 // Validate dates
 if (empty($startDate) || empty($endDate)) {
     $_SESSION['error'][] = "Start date and end date are required.";
-    header('Location: /');
+    header('Location: /?tab=leave');
     exit();
 }
 
@@ -92,17 +92,27 @@ $endTimestamp = strtotime($endDate);
 
 if ($startTimestamp === false || $endTimestamp === false) {
     $_SESSION['error'][] = "Invalid date format.";
-    header('Location: /');
+    header('Location: /?tab=leave');
     exit();
 }
 
 if ($endTimestamp < $startTimestamp) {
     $_SESSION['error'][] = "End date cannot be before start date.";
-    header('Location: /');
+    header('Location: /?tab=leave');
     exit();
 }
 
-// Calculate total days (excluding weekends? adjust as needed)
+// ========================
+// CHECK FOR PAST DATES
+// ========================
+$today = strtotime(date('Y-m-d'));
+if ($startTimestamp < $today) {
+    $_SESSION['error'][] = "Start date cannot be in the past.";
+    header('Location: /?tab=leave');
+    exit();
+}
+
+// Calculate total days
 $totalDays = 0;
 $current = $startTimestamp;
 while ($current <= $endTimestamp) {
@@ -117,8 +127,145 @@ while ($current <= $endTimestamp) {
 
 if ($totalDays <= 0) {
     $_SESSION['error'][] = "Invalid date range.";
-    header('Location: /');
+    header('Location: /?tab=leave');
     exit();
+}
+
+// ========================
+// CHECK FOR DUPLICATE LEAVE REQUESTS
+// ========================
+
+// Check 1: Same date range with same leave type (including pending)
+$duplicateCheck = $db->query(
+    "SELECT id, status, leave_type, start_date, end_date 
+     FROM leave_requests 
+     WHERE employee_id = ? 
+     AND start_date = ? 
+     AND end_date = ? 
+     AND leave_type = ?
+     AND status IN ('Pending', 'Approved')",
+    [$employeeRecordId, $startDate, $endDate, $leaveType]
+)->fetch_one();
+
+if ($duplicateCheck) {
+    $_SESSION['error'][] = "You already have a " . strtolower($duplicateCheck['status']) . " leave request for these dates with the same leave type.";
+    header('Location: /?tab=leave');
+    exit();
+}
+
+// Check 2: Overlapping dates (any leave type)
+$overlapCheck = $db->query(
+    "SELECT id, leave_type, start_date, end_date, status 
+     FROM leave_requests 
+     WHERE employee_id = ? 
+     AND status IN ('Pending', 'Approved')
+     AND (
+         (start_date <= ? AND end_date >= ?) OR
+         (start_date <= ? AND end_date >= ?) OR
+         (start_date >= ? AND end_date <= ?)
+     )",
+    [
+        $employeeRecordId,
+        $endDate,
+        $startDate,  // Case 1: Existing leave overlaps with new dates
+        $startDate,
+        $startDate, // Case 2: New start date falls within existing leave
+        $startDate,
+        $endDate    // Case 3: New dates completely inside existing leave
+    ]
+)->find();
+
+if (!empty($overlapCheck)) {
+    $overlapping = $overlapCheck[0];
+    $_SESSION['error'][] = "This date range overlaps with your existing {$overlapping['status']} {$overlapping['leave_type']} request from " .
+        date('M j, Y', strtotime($overlapping['start_date'])) . " to " .
+        date('M j, Y', strtotime($overlapping['end_date'])) . ".";
+    header('Location: /?tab=leave');
+    exit();
+}
+
+// ========================
+// CHECK LEAVE QUOTA (Last 3 months)
+// ========================
+
+// Calculate date 3 months ago
+$threeMonthsAgo = date('Y-m-d', strtotime('-3 months'));
+
+// Count leave requests in the last 3 months (excluding Rejected)
+$recentLeaveCount = $db->query(
+    "SELECT COUNT(*) as total 
+     FROM leave_requests 
+     WHERE employee_id = ? 
+     AND created_at >= ?
+     AND status != 'Rejected'
+     AND leave_type != 'Remote Work'", // Optional: exclude Remote Work from quota
+    [$employeeRecordId, $threeMonthsAgo]
+)->fetch_one();
+
+$recentLeaveTotal = $recentLeaveCount['total'] ?? 0;
+
+// Define maximum leaves per 3 months (adjust as needed)
+$maxLeavesPerQuarter = 10;
+
+if ($recentLeaveTotal >= $maxLeavesPerQuarter) {
+    $_SESSION['error'][] = "You have reached the maximum limit of {$maxLeavesPerQuarter} leave requests in the last 3 months. " .
+        "Please wait before submitting another request or contact HR for assistance.";
+    header('Location: /?tab=leave');
+    exit();
+}
+
+// ========================
+// CHECK ANNUAL LEAVE BALANCE (Optional)
+// ========================
+
+// Calculate total approved leave days in current year
+$yearStart = date('Y-01-01');
+$yearEnd = date('Y-12-31');
+
+$annualLeaveUsed = $db->query(
+    "SELECT SUM(total_days) as total_used 
+     FROM leave_requests 
+     WHERE employee_id = ? 
+     AND status = 'Approved'
+     AND start_date BETWEEN ? AND ?
+     AND leave_type = 'Annual Leave'",
+    [$employeeRecordId, $yearStart, $yearEnd]
+)->fetch_one();
+
+$annualLeaveUsedDays = $annualLeaveUsed['total_used'] ?? 0;
+
+// Define annual leave entitlement (adjust based on employee tenure or company policy)
+$annualLeaveEntitlement = 15; // 15 days per year
+
+// Check if this new request would exceed annual leave balance
+if ($leaveType === 'Annual Leave' && ($annualLeaveUsedDays + $totalDays) > $annualLeaveEntitlement) {
+    $_SESSION['error'][] = "Insufficient annual leave balance. You have {$annualLeaveEntitlement} days per year and have already used {$annualLeaveUsedDays} days. " .
+        "This request for {$totalDays} days would exceed your balance.";
+    header('Location: /?tab=leave');
+    exit();
+}
+
+// ========================
+// CHECK FOR PREGNANCY-RELATED LEAVES (If applicable)
+// ========================
+// This is just an example - adjust based on your company policies
+if ($leaveType === 'Sick Leave' && stripos($reason, 'pregnancy') !== false) {
+    // Check if employee has already taken maternity leave this year
+    $maternityLeaveTaken = $db->query(
+        "SELECT COUNT(*) as total 
+         FROM leave_requests 
+         WHERE employee_id = ? 
+         AND leave_type = 'Maternity Leave'
+         AND status = 'Approved'
+         AND YEAR(start_date) = YEAR(CURDATE())",
+        [$employeeRecordId]
+    )->fetch_one();
+
+    if (($maternityLeaveTaken['total'] ?? 0) > 0) {
+        $_SESSION['error'][] = "Maternity leave has already been processed for this year. Please contact HR for assistance.";
+        header('Location: /?tab=leave');
+        exit();
+    }
 }
 
 // ========================
@@ -140,7 +287,7 @@ try {
             created_at
         ) VALUES (?, ?, ?, ?, ?, ?, 'Pending', NOW())",
         [
-            $employeeRecordId,  // This is employees.id
+            $employeeRecordId,
             $leaveType,
             $startDate,
             $endDate,
@@ -152,7 +299,7 @@ try {
     $leaveRequestId = $db->lastInsertId();
 
     // Optional: Log the action
-    error_log("Leave request #{$leaveRequestId} created for employee #{$employeeRecordId} ({$employee['full_name']})");
+    error_log("Leave request #{$leaveRequestId} created for employee #{$employeeRecordId} ({$employee['full_name']}) - {$totalDays} days");
 
     $db->commit();
 
@@ -167,5 +314,5 @@ try {
 // ========================
 // REDIRECT BACK
 // ========================
-header('Location: /');
+header('Location: /?tab=leave');
 exit();

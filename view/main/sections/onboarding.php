@@ -213,7 +213,7 @@
                                             class="text-sm text-gray-500 hover:text-gray-700 bg-gray-50 hover:bg-gray-100 px-3 py-1.5 rounded-lg transition-colors duration-200 flex items-center gap-1"
                                             onclick="openModal('onboardingProgressModal<?= $account['applicant_id'] ?>')">
                                             <i class="fas fa-eye text-xs"></i>
-                                            View Progress
+                                            View account
                                         </button>
                                     </td>
                                 </tr>

@@ -307,7 +307,6 @@ $leaveBalances = [
 ];
 
 
-
 // ATTENDANCE QUERIES
 
 // Get current date info
@@ -325,30 +324,81 @@ $employeeShift = $db->query("
 ", [$employeeId])->fetch_one();
 
 // Get current attendance status
+// Get current attendance status - IMPROVED QUERY
 $currentAttendance = $db->query("
     SELECT * FROM attendance 
-    WHERE employee_id = ? AND date = ? AND status != 'clocked_out' 
+    WHERE employee_id = ? AND status != 'clocked_out' 
     ORDER BY id DESC LIMIT 1
-", [$employeeId, $today])->fetch_one();
+", [$employeeId])->fetch_one();
+
+// If not found with status filter, try finding by date
+if (!$currentAttendance) {
+    $currentAttendance = $db->query("
+        SELECT * FROM attendance 
+        WHERE employee_id = ? AND date = ? AND (status = 'clocked_in' OR status = 'paused')
+        ORDER BY id DESC LIMIT 1
+    ", [$employeeId, $today])->fetch_one();
+}
 
 $attendanceStatus = 'clocked_out';
 $elapsedSeconds = 0;
 $pauseTotal = 0;
 
+// DEBUG: Log what we found
+error_log("Current Attendance Query Result: " . ($currentAttendance ? json_encode($currentAttendance) : 'none'));
+
 if ($currentAttendance) {
     $attendanceStatus = $currentAttendance['status'];
 
+    // Set timezone
+    date_default_timezone_set('Asia/Manila');
+
+    // Get current timestamp in Philippines time
+    $now = new DateTime('now', new DateTimeZone('Asia/Manila'));
+
+    // Create DateTime objects from database timestamps
+    $clockIn = new DateTime($currentAttendance['clock_in'], new DateTimeZone('Asia/Manila'));
+
     if ($attendanceStatus == 'clocked_in') {
-        $elapsedSeconds = time() - strtotime($currentAttendance['clock_in']) - ($currentAttendance['pause_total'] * 60);
+        // Calculate difference in seconds
+        $elapsedSeconds = $now->getTimestamp() - $clockIn->getTimestamp();
+
+        // Subtract pause time (pause_total is in minutes, convert to seconds)
+        $pauseSeconds = ($currentAttendance['pause_total'] ?? 0) * 60;
+        $elapsedSeconds -= $pauseSeconds;
+
+        error_log("CLOCKED IN CALC: now=" . $now->getTimestamp() .
+            ", clockIn=" . $clockIn->getTimestamp() .
+            ", diff=" . ($now->getTimestamp() - $clockIn->getTimestamp()) .
+            ", pauseSeconds=" . $pauseSeconds .
+            ", final=" . $elapsedSeconds);
+
     } elseif ($attendanceStatus == 'paused') {
-        $elapsedSeconds = strtotime($currentAttendance['pause_start']) - strtotime($currentAttendance['clock_in']) - ($currentAttendance['pause_total'] * 60);
+        // When paused, elapsed time is up to pause start
+        if ($currentAttendance['pause_start']) {
+            $pauseStart = new DateTime($currentAttendance['pause_start'], new DateTimeZone('Asia/Manila'));
+            $elapsedSeconds = $pauseStart->getTimestamp() - $clockIn->getTimestamp();
+
+            // Subtract pause time that was already accumulated
+            $pauseSeconds = ($currentAttendance['pause_total'] ?? 0) * 60;
+            $elapsedSeconds -= $pauseSeconds;
+
+            error_log("PAUSED CALC: pauseStart=" . $pauseStart->getTimestamp() .
+                ", clockIn=" . $clockIn->getTimestamp() .
+                ", diff=" . ($pauseStart->getTimestamp() - $clockIn->getTimestamp()) .
+                ", pauseSeconds=" . $pauseSeconds .
+                ", final=" . $elapsedSeconds);
+        }
     }
 
-    $pauseTotal = $currentAttendance['pause_total'] ?? 0;
+    // Ensure elapsed seconds is never negative and is an integer
+    $elapsedSeconds = max(0, (int) $elapsedSeconds);
+    $pauseTotal = (int) ($currentAttendance['pause_total'] ?? 0);
+
+    error_log("FINAL VALUES - Status: $attendanceStatus, Elapsed: $elapsedSeconds, Pause Total: $pauseTotal");
 }
 
 $showClockIn = ($attendanceStatus == 'clocked_out');
-
 // Get current pay period
 if ($currentDay <= 5) {
     $periodStart = date('Y-m-d', strtotime('first day of previous month')) . '-21';
@@ -507,7 +557,6 @@ function formatMinutes($minutes)
     }
     return $m . 'm';
 }
-
 // ALL-TIME ATTENDANCE STATISTICS
 
 // Get all-time attendance statistics
@@ -1555,6 +1604,96 @@ function noteTimeAgo($datetime)
     }
 }
 
+// ============================================
+// PAYSLIP DATA SECTION
+// ============================================
+
+// Get payslips for the employee - SIMPLIFIED VERSION
+// Get payslips for the employee
+$payslips = $db->query("
+    SELECT 
+        ps.id,
+        ps.employee_id,
+        ps.period_start,
+        ps.period_end,
+        ps.total_regular_hours,
+        ps.total_overtime_hours,
+        ps.hourly_rate,
+        ps.gross_pay,
+        ps.total_deductions,
+        ps.net_pay,
+        ps.claims,
+        ps.status,
+        DATE_FORMAT(ps.period_start, '%M %Y') as month_year,
+        e.full_name 
+    FROM payroll_summary ps
+    JOIN employees e ON ps.employee_id = e.id 
+    WHERE ps.employee_id = ?
+    ORDER BY ps.period_start DESC
+", [$employeeId])->find();
+
+if (!$payslips) {
+    $payslips = [];
+}
+
+// Get latest payslip for summary
+$latestPayslip = $db->query("
+    SELECT 
+        period_end,
+        gross_pay,
+        net_pay,
+        status
+    FROM payroll_summary 
+    WHERE employee_id = ?
+    ORDER BY period_end DESC
+    LIMIT 1
+", [$employeeId])->fetch_one();
+
+if (!$latestPayslip) {
+    $latestPayslip = [
+        'period_end' => null,
+        'gross_pay' => 0,
+        'net_pay' => 0,
+        'status' => 'No Data'
+    ];
+}
+
+// Calculate YTD earnings (Year to Date)
+$ytdEarnings = $db->query("
+    SELECT 
+        COALESCE(SUM(gross_pay), 0) as total_gross,
+        COALESCE(SUM(net_pay), 0) as total_net,
+        COALESCE(SUM(total_regular_hours), 0) as total_hours,
+        COUNT(*) as pay_periods
+    FROM payroll_summary 
+    WHERE employee_id = ? 
+    AND YEAR(period_end) = YEAR(CURDATE())
+", [$employeeId])->fetch_one();
+
+if (!$ytdEarnings) {
+    $ytdEarnings = [
+        'total_gross' => 0,
+        'total_net' => 0,
+        'total_hours' => 0,
+        'pay_periods' => 0
+    ];
+}
+
+// Get upcoming pay period
+$today = date('Y-m-d');
+$currentDay = (int) date('j');
+
+if ($currentDay <= 5) {
+    $nextPayDate = date('Y-m-10'); // 10th of current month
+    $nextPayPeriod = '2nd half of previous month';
+} elseif ($currentDay <= 20) {
+    $nextPayDate = date('Y-m-25'); // 25th of current month
+    $nextPayPeriod = '1st half of current month';
+} else {
+    $nextPayDate = date('Y-m-10', strtotime('first day of next month')); // 10th of next month
+    $nextPayPeriod = '2nd half of current month';
+}
+
 // Add all variables to view
 view_path('ess', 'index', [
     'tasks' => $limitedTasks,
@@ -1586,8 +1725,6 @@ view_path('ess', 'index', [
     'recentAttendance' => $recentAttendance,
     'dailyBreakdown' => $dailyBreakdown,
     'expectedWorkDays' => $expectedWorkDays,
-    'formatHoursMinutes' => 'formatHoursMinutes',
-    'formatMinutes' => 'formatMinutes',
 
     'allTimeStats' => $allTimeStats,
     'attendanceByMonth' => $attendanceByMonth,
@@ -1661,4 +1798,11 @@ view_path('ess', 'index', [
     'noteTotalNotes' => $noteTotalNotes,
     'noteNewCount' => $noteNewCount,
     'noteActivities' => $noteActivities,
+
+    //payslip
+    'payslips' => $payslips,
+    'latestPayslip' => $latestPayslip,
+    'ytdEarnings' => $ytdEarnings,
+    'nextPayDate' => $nextPayDate,
+    'nextPayPeriod' => $nextPayPeriod,
 ]);

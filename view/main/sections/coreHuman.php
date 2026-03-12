@@ -5,10 +5,112 @@
             <h2 class="text-2xl font-semibold text-gray-800">Core Human Capital Management</h2>
             <p class="text-gray-500 text-sm mt-1">Central employee records and organizational data</p>
         </div>
+
+        <!-- Export Button in Form -->
+        <form action="/export/employees-csv" method="GET" class="flex justify-end items-center">
+            <input type="hidden" name="search" value="<?= htmlspecialchars($hcmSearchTerm) ?>">
+            <input type="hidden" name="status" value="<?= htmlspecialchars($hcmStatusFilter) ?>">
+            <input type="hidden" name="department" value="<?= htmlspecialchars($hcmDepartmentFilter) ?>">
+            <input type="hidden" name="role" value="<?= htmlspecialchars($hcmRoleFilter) ?>">
+            <button type="submit"
+                class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
+                <i class="fas fa-file-excel"></i>
+                Export to Excel
+            </button>
+        </form>
+    </div>
+
+    <!-- HCM Lifecycle Stats -->
+    <div class="grid grid-cols-4 sm:grid-cols-3 lg:grid-cols-3 gap-3 mb-6">
+        <!-- Attract & Recruit -->
+        <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-center gap-2 mb-2">
+                <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-magnifying-glass text-purple-600 text-sm"></i>
+                </div>
+                <span class="text-xs font-medium text-purple-600 uppercase tracking-wider">Attract & Recruit</span>
+            </div>
+            <p class="text-2xl font-bold text-gray-800"><?= number_format($jobPostings ? count($jobPostings) : 0) ?></p>
+            <p class="text-xs text-gray-500 mt-1">Open positions</p>
+            <div class="mt-2 text-xs text-gray-400">
+                <span
+                    class="text-green-600 font-medium"><?= number_format($recentApplicants ? count($recentApplicants) : 0) ?></span>
+                new applicants
+            </div>
+        </div>
+
+        <!-- Hire & Onboard -->
+        <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-center gap-2 mb-2">
+                <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-user-plus text-blue-600 text-sm"></i>
+                </div>
+                <span class="text-xs font-medium text-blue-600 uppercase tracking-wider">Hire & Onboard</span>
+            </div>
+            <p class="text-2xl font-bold text-gray-800"><?= number_format($stats['totalHired']) ?></p>
+            <p class="text-xs text-gray-500 mt-1">Total hired</p>
+            <div class="mt-2 text-xs text-gray-400">
+                <span class="text-amber-600 font-medium"><?= number_format($totalPending['count'] ?? 0) ?></span>
+                onboarding
+            </div>
+        </div>
+
+        <!-- Train & Develop -->
+        <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-center gap-2 mb-2">
+                <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-graduation-cap text-green-600 text-sm"></i>
+                </div>
+                <span class="text-xs font-medium text-green-600 uppercase tracking-wider">Train & Develop</span>
+            </div>
+            <p class="text-2xl font-bold text-gray-800"><?= number_format($trainingStats['active_trainings'] ?? 0) ?>
+            </p>
+            <p class="text-xs text-gray-500 mt-1">Active trainings</p>
+            <div class="mt-2 text-xs text-gray-400">
+                <span class="text-green-600 font-medium"><?= number_format($analyticsTrainingsCompleted ?? 0) ?></span>
+                completed
+            </div>
+        </div>
+
+        <!-- Manage & Evaluate -->
+        <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-center gap-2 mb-2">
+                <div class="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-chart-simple text-yellow-600 text-sm"></i>
+                </div>
+                <span class="text-xs font-medium text-yellow-600 uppercase tracking-wider">Manage & Evaluate</span>
+            </div>
+            <p class="text-2xl font-bold text-gray-800">
+                <?= number_format($recentEvaluations ? count($recentEvaluations) : 0) ?>
+            </p>
+            <p class="text-xs text-gray-500 mt-1">Recent evaluations</p>
+            <div class="mt-2 text-xs text-gray-400">
+                <span class="text-yellow-600 font-medium"><?= number_format($pendingCount['count'] ?? 0) ?></span>
+                pending
+            </div>
+        </div>
+
+        <!-- Compensate & Recognize -->
+        <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-center gap-2 mb-2">
+                <div class="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-trophy text-red-600 text-sm"></i>
+                </div>
+                <span class="text-xs font-medium text-red-600 uppercase tracking-wider">Compensate & Recognize</span>
+            </div>
+            <p class="text-2xl font-bold text-gray-800">
+                <?= number_format($recentRecognitions ? count($recentRecognitions) : 0) ?>
+            </p>
+            <p class="text-xs text-gray-500 mt-1">Recent recognitions</p>
+            <div class="mt-2 text-xs text-gray-400">
+                <span class="text-red-600 font-medium">₱<?= number_format($payrollTotalNet ?? 0, 0) ?></span> payroll
+            </div>
+        </div>
+
     </div>
 
     <!-- Employee Stats -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="grid grid-cols-4 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div class="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
             <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Total Employees</p>
             <p class="text-2xl font-bold text-gray-800"><?= number_format($totalEmployees) ?></p>
@@ -35,7 +137,7 @@
     <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         <div
             class="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <h3 class="text-lg font-semibold text-gray-800">Employee Directory</h3>
+            <h3 class="text-lg font-semibold text-gray-800" id="employeeList">Employee Directory</h3>
 
             <!-- Filter Bar -->
             <div class="flex flex-wrap items-center gap-2">
@@ -47,7 +149,8 @@
                         class="w-full pl-10 pr-8 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 transition-all duration-200">
                     <i class="fas fa-search absolute left-3 top-2.5 text-gray-400 text-sm"></i>
                     <?php if (!empty($hcmSearchTerm)): ?>
-                        <a href="?tab=hcm&hcm_page=1" class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
+                        <a href="?tab=hcm&hcm_page=1#employeeList"
+                            class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
                             <i class="fas fa-times"></i>
                         </a>
                     <?php endif; ?>
@@ -89,7 +192,7 @@
 
                 <!-- Clear Filters Button (shown only when filters are active) -->
                 <?php if (!empty($hcmStatusFilter) || !empty($hcmDepartmentFilter) || !empty($hcmRoleFilter) || !empty($hcmSearchTerm)): ?>
-                    <a href="?tab=hcm&hcm_page=1"
+                    <a href="?tab=hcm&hcm_page=1#employeeList"
                         class="px-3 py-2 bg-gray-100 text-gray-600 text-sm rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1">
                         <i class="fas fa-times-circle"></i>
                         Clear
@@ -190,7 +293,7 @@
                                             <?= !empty($hcmSearchTerm) ? 'No results for "' . htmlspecialchars($hcmSearchTerm) . '"' : 'No employee records available' ?>
                                         </p>
                                         <?php if (!empty($hcmStatusFilter) || !empty($hcmDepartmentFilter) || !empty($hcmRoleFilter)): ?>
-                                            <a href="?tab=hcm&hcm_page=1"
+                                            <a href="?tab=hcm&hcm_page=1#employeeList"
                                                 class="mt-3 text-blue-600 hover:text-blue-800 text-sm">
                                                 <i class="fas fa-times mr-1"></i>Clear all filters
                                             </a>
@@ -215,7 +318,7 @@
                     <div class="flex items-center justify-end gap-2">
                         <!-- Previous button -->
                         <?php if ($hcmPage > 1): ?>
-                            <a href="?tab=hcm&hcm_page=<?= $hcmPage - 1 ?><?= !empty($hcmSearchTerm) ? '&hcm_search=' . urlencode($hcmSearchTerm) : '' ?><?= !empty($hcmStatusFilter) ? '&hcm_status=' . urlencode($hcmStatusFilter) : '' ?><?= !empty($hcmDepartmentFilter) ? '&hcm_department=' . urlencode($hcmDepartmentFilter) : '' ?><?= !empty($hcmRoleFilter) ? '&hcm_role=' . urlencode($hcmRoleFilter) : '' ?>"
+                            <a href="?tab=hcm&hcm_page=<?= $hcmPage - 1 ?><?= !empty($hcmSearchTerm) ? '&hcm_search=' . urlencode($hcmSearchTerm) : '' ?><?= !empty($hcmStatusFilter) ? '&hcm_status=' . urlencode($hcmStatusFilter) : '' ?><?= !empty($hcmDepartmentFilter) ? '&hcm_department=' . urlencode($hcmDepartmentFilter) : '' ?><?= !empty($hcmRoleFilter) ? '&hcm_role=' . urlencode($hcmRoleFilter) : '' ?>#employeeList"
                                 class="w-8 h-8 flex items-center justify-center text-sm rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors duration-200">
                                 <i class="fas fa-chevron-left text-xs"></i>
                             </a>
@@ -243,7 +346,7 @@
                         $queryString = !empty($queryParams) ? '&' . implode('&', $queryParams) : '';
 
                         if ($startPage > 1) {
-                            echo '<a href="?tab=hcm&hcm_page=1' . $queryString . '" 
+                            echo '<a href="?tab=hcm&hcm_page=1' . $queryString . '#employeeList" 
                                class="w-8 h-8 flex items-center justify-center text-sm rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors duration-200">1</a>';
                             if ($startPage > 2) {
                                 echo '<span class="text-gray-400">...</span>';
@@ -254,7 +357,7 @@
                             if ($i == $hcmPage) {
                                 echo '<button class="w-8 h-8 flex items-center justify-center text-sm rounded-lg bg-primary text-white">' . $i . '</button>';
                             } else {
-                                echo '<a href="?tab=hcm&hcm_page=' . $i . $queryString . '#employeeTable" 
+                                echo '<a href="?tab=hcm&hcm_page=' . $i . $queryString . '#employeeList" 
                                    class="w-8 h-8 flex items-center justify-center text-sm rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors duration-200">' . $i . '</a>';
                             }
                         }
@@ -288,7 +391,7 @@
     </div>
 
     <!-- Department Summary -->
-    <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="mt-6 grid grid-cols-4 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <?php if (!empty($departmentStats)): ?>
             <?php foreach ($departmentStats as $dept):
                 $staff = $dept['total'] - $dept['managers'];

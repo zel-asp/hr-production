@@ -3,6 +3,9 @@ use Core\Database;
 require base_path("core/middleware/adminAuth.php");
 
 
+$config = require base_path('config/config.php');
+$db = new Database($config['database']);
+
 // Only allow POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     $_SESSION['error'][] = 'Invalid request method';
@@ -25,9 +28,6 @@ if (!$requestId) {
     header('Location: /main?tab=shift');
     exit();
 }
-
-$config = require base_path('config/config.php');
-$db = new Database($config['database']);
 
 // Get the swap request details
 $swapRequest = $db->query("

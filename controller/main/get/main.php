@@ -25,7 +25,7 @@ try {
 // ============================================
 try {
     $allApplicants = $db->query(
-        "SELECT id, full_name, email, phone, position, experience,contract_signing_date, education, skills, resume_path, cover_note, status, hired_date, start_date, created_at, age, gender 
+        "SELECT id, full_name, email, phone, position, experience,contract_signing_date, education, skills, resume_path, cover_note, status, hired_date, start_date, created_at, age, gender, shift, rate_per_hour
         FROM applicants ORDER BY created_at DESC"
     )->find();
 } catch (\Throwable $th) {
@@ -464,7 +464,7 @@ $totalNewHirePages = ceil($totalNewHires / $nhPerPage);
 // EMPLOYEE STATS SECTION
 // ============================================
 try {
-    $totalHired = $db->query("SELECT COUNT(*) as count FROM employees WHERE status = 'Active'")->fetch_one();
+    $totalHired = $db->query("SELECT COUNT(*) as count FROM employees")->fetch_one();
 } catch (\Throwable $th) {
     $totalHired = ['count' => 0];
 }
@@ -950,7 +950,7 @@ try {
 }
 
 // ============================================
-// TIMESHEET MANAGEMENT SECTION
+// TIMESHEET MANAGEMENT SECTION - UPDATED
 // ============================================
 
 // Get filter parameters
@@ -965,13 +965,12 @@ $filterApplied = $timesheetFilter !== 'all';
 
 if ($timesheetFilter === 'all') {
     // No filter - show all time
-    $dateRangeStart = '1970-01-01'; // Very old date to include all records
-    $dateRangeEnd = '2099-12-31'; // Far future date
+    $dateRangeStart = '1970-01-01';
+    $dateRangeEnd = '2099-12-31';
     $filterLabel = 'All Time';
 } else {
     switch ($timesheetFilter) {
         case 'this_week':
-            // Get start of week (Monday)
             $startOfWeek = date('Y-m-d', strtotime('monday this week'));
             $endOfWeek = date('Y-m-d', strtotime('sunday this week'));
             $dateRangeStart = $startOfWeek;
@@ -1002,14 +1001,14 @@ try {
     $totalTimesheets = $db->query("
         SELECT COUNT(DISTINCT e.id) as count
         FROM employees e
-        WHERE e.status = 'Active' OR e.status = 'Probationary'
+        WHERE e.status IN ('Active', 'Regular', 'Probationary')
     ")->fetch_one()['count'] ?? 0;
 } catch (\Throwable $th) {
     $totalTimesheets = 0;
     error_log("Error fetching total timesheets: " . $th->getMessage());
 }
 
-// Get timesheet data with pagination
+// Get timesheet data with pagination - Using attendance_summary
 try {
     if ($timesheetFilter === 'all') {
         $timesheets = $db->query("
@@ -1019,24 +1018,53 @@ try {
                 e.department,
                 e.position,
                 e.hourly_rate,
-                -- Calculate totals for all time
+                -- Calculate totals from attendance_summary for all time
                 COALESCE((
-                    SELECT SUM(regular_hours) 
-                    FROM attendance a 
-                    WHERE a.employee_id = e.id
+                    SELECT SUM(total_regular_hours) 
+                    FROM attendance_summary as2 
+                    WHERE as2.employee_id = e.id
                 ), 0) as regular_hours,
                 COALESCE((
-                    SELECT SUM(overtime_hours) 
-                    FROM attendance a 
-                    WHERE a.employee_id = e.id
+                    SELECT SUM(total_overtime_hours) 
+                    FROM attendance_summary as2 
+                    WHERE as2.employee_id = e.id
                 ), 0) as overtime_hours,
-                'Pending' as timesheet_status,
+                -- Get the LATEST attendance summary ID and status
                 (
-                    SELECT MAX(date) 
-                    FROM attendance a 
-                    WHERE a.employee_id = e.id
+                    SELECT id 
+                    FROM attendance_summary as2 
+                    WHERE as2.employee_id = e.id 
+                    ORDER BY as2.period_end DESC 
+                    LIMIT 1
+                ) as summary_id,
+                COALESCE((
+                    SELECT status 
+                    FROM attendance_summary as2 
+                    WHERE as2.employee_id = e.id 
+                    ORDER BY as2.period_end DESC 
+                    LIMIT 1
+                ), 'Pending') as timesheet_status,
+                -- Get period for the latest summary
+                (
+                    SELECT period_start 
+                    FROM attendance_summary as2 
+                    WHERE as2.employee_id = e.id 
+                    ORDER BY as2.period_end DESC 
+                    LIMIT 1
+                ) as summary_period_start,
+                (
+                    SELECT period_end 
+                    FROM attendance_summary as2 
+                    WHERE as2.employee_id = e.id 
+                    ORDER BY as2.period_end DESC 
+                    LIMIT 1
+                ) as summary_period_end,
+                (
+                    SELECT MAX(period_end) 
+                    FROM attendance_summary as2 
+                    WHERE as2.employee_id = e.id
                 ) as last_attendance_date,
-                -- Include attendance records as JSON
+                -- Include attendance records as JSON (still from attendance for detailed view)
                 (
                     SELECT CONCAT(
                         '[',
@@ -1059,18 +1087,19 @@ try {
                     FROM attendance a 
                     WHERE a.employee_id = e.id AND a.status = 'clocked_out'
                 ) as attendance_records,
-                -- Get attendance count
+                -- Get attendance count from summaries
                 (
                     SELECT COUNT(*) 
-                    FROM attendance a 
-                    WHERE a.employee_id = e.id AND a.status = 'clocked_out'
+                    FROM attendance_summary as2 
+                    WHERE as2.employee_id = e.id
                 ) as total_attendance_days
             FROM employees e
-            WHERE e.status = 'Active' OR e.status = 'Probationary'
+            WHERE e.status IN ('Active', 'Regular', 'Probationary')
             ORDER BY e.full_name ASC
             LIMIT $timesheetPerPage OFFSET $timesheetOffset
         ")->find();
     } else {
+        // For date-filtered view, find which payroll periods overlap with the date range
         $timesheets = $db->query("
             SELECT 
                 e.id as employee_id,
@@ -1078,26 +1107,65 @@ try {
                 e.department,
                 e.position,
                 e.hourly_rate,
-                -- Calculate totals for the period
+                -- Calculate totals from attendance_summary for the period
                 COALESCE((
-                    SELECT SUM(regular_hours) 
-                    FROM attendance a 
-                    WHERE a.employee_id = e.id 
-                    AND a.date BETWEEN '$dateRangeStart' AND '$dateRangeEnd'
+                    SELECT SUM(total_regular_hours) 
+                    FROM attendance_summary as2 
+                    WHERE as2.employee_id = e.id 
+                    AND as2.period_start <= ? 
+                    AND as2.period_end >= ?
                 ), 0) as regular_hours,
                 COALESCE((
-                    SELECT SUM(overtime_hours) 
-                    FROM attendance a 
-                    WHERE a.employee_id = e.id 
-                    AND a.date BETWEEN '$dateRangeStart' AND '$dateRangeEnd'
+                    SELECT SUM(total_overtime_hours) 
+                    FROM attendance_summary as2 
+                    WHERE as2.employee_id = e.id 
+                    AND as2.period_start <= ? 
+                    AND as2.period_end >= ?
                 ), 0) as overtime_hours,
-                'Pending' as timesheet_status,
+                -- Get the attendance summary ID and status for the relevant period
                 (
-                    SELECT MAX(date) 
-                    FROM attendance a 
-                    WHERE a.employee_id = e.id
+                    SELECT id 
+                    FROM attendance_summary as2 
+                    WHERE as2.employee_id = e.id 
+                    AND as2.period_start <= ? 
+                    AND as2.period_end >= ?
+                    ORDER BY as2.period_end DESC 
+                    LIMIT 1
+                ) as summary_id,
+                COALESCE((
+                    SELECT status 
+                    FROM attendance_summary as2 
+                    WHERE as2.employee_id = e.id 
+                    AND as2.period_start <= ? 
+                    AND as2.period_end >= ?
+                    ORDER BY as2.period_end DESC 
+                    LIMIT 1
+                ), 'Pending') as timesheet_status,
+                -- Get the exact period for this summary
+                (
+                    SELECT period_start 
+                    FROM attendance_summary as2 
+                    WHERE as2.employee_id = e.id 
+                    AND as2.period_start <= ? 
+                    AND as2.period_end >= ?
+                    ORDER BY as2.period_end DESC 
+                    LIMIT 1
+                ) as summary_period_start,
+                (
+                    SELECT period_end 
+                    FROM attendance_summary as2 
+                    WHERE as2.employee_id = e.id 
+                    AND as2.period_start <= ? 
+                    AND as2.period_end >= ?
+                    ORDER BY as2.period_end DESC 
+                    LIMIT 1
+                ) as summary_period_end,
+                (
+                    SELECT MAX(period_end) 
+                    FROM attendance_summary as2 
+                    WHERE as2.employee_id = e.id
                 ) as last_attendance_date,
-                -- Include attendance records for the period as JSON
+                -- Include attendance records for the period as JSON (still from attendance for detailed view)
                 (
                     SELECT CONCAT(
                         '[',
@@ -1119,22 +1187,50 @@ try {
                     )
                     FROM attendance a 
                     WHERE a.employee_id = e.id 
-                    AND a.date BETWEEN '$dateRangeStart' AND '$dateRangeEnd'
+                    AND a.date BETWEEN ? AND ?
                     AND a.status = 'clocked_out'
                 ) as attendance_records,
-                -- Get attendance count for the period
+                -- Get attendance count from summaries for the period
                 (
                     SELECT COUNT(*) 
-                    FROM attendance a 
-                    WHERE a.employee_id = e.id 
-                    AND a.date BETWEEN '$dateRangeStart' AND '$dateRangeEnd'
-                    AND a.status = 'clocked_out'
+                    FROM attendance_summary as2 
+                    WHERE as2.employee_id = e.id 
+                    AND as2.period_start <= ? 
+                    AND as2.period_end >= ?
                 ) as period_attendance_days
             FROM employees e
-            WHERE e.status = 'Active' OR e.status = 'Probationary'
+            WHERE e.status IN ('Active', 'Regular', 'Probationary')
             ORDER BY e.full_name ASC
-            LIMIT $timesheetPerPage OFFSET $timesheetOffset
-        ")->find();
+            LIMIT ? OFFSET ?
+        ", [
+            // Regular hours params (2)
+            $dateRangeEnd,
+            $dateRangeStart,
+            // Overtime hours params (2)
+            $dateRangeEnd,
+            $dateRangeStart,
+            // Summary ID params (2)
+            $dateRangeEnd,
+            $dateRangeStart,
+            // Status params (2)
+            $dateRangeEnd,
+            $dateRangeStart,
+            // Period start params (2)
+            $dateRangeEnd,
+            $dateRangeStart,
+            // Period end params (2)
+            $dateRangeEnd,
+            $dateRangeStart,
+            // Attendance records JSON (2)
+            $dateRangeStart,
+            $dateRangeEnd,
+            // Period attendance days params (2)
+            $dateRangeEnd,
+            $dateRangeStart,
+            // Pagination (2)
+            $timesheetPerPage,
+            $timesheetOffset
+        ])->find();
     }
 } catch (\Throwable $th) {
     $timesheets = [];
@@ -1144,54 +1240,62 @@ try {
 // Calculate total pages
 $totalTimesheetPages = ceil($totalTimesheets / $timesheetPerPage);
 
-// Get summary statistics for the period
+// Get summary statistics for the period - UPDATED to use attendance_summary
 try {
     if ($timesheetFilter === 'all') {
         $timesheetSummary = $db->query("
             SELECT 
-                COALESCE(SUM(regular_hours), 0) as total_regular,
-                COALESCE(SUM(overtime_hours), 0) as total_overtime,
-                COUNT(DISTINCT employee_id) as employees_with_hours
-            FROM attendance
+                COALESCE(SUM(total_regular_hours), 0) as total_regular,
+                COALESCE(SUM(total_overtime_hours), 0) as total_overtime,
+                COUNT(DISTINCT employee_id) as employees_with_hours,
+                COUNT(DISTINCT CASE WHEN status = 'Approved' THEN employee_id END) as approved_count,
+                COUNT(DISTINCT CASE WHEN status = 'Pending' THEN employee_id END) as pending_count
+            FROM attendance_summary
         ")->fetch_one();
     } else {
         $timesheetSummary = $db->query("
             SELECT 
-                COALESCE(SUM(regular_hours), 0) as total_regular,
-                COALESCE(SUM(overtime_hours), 0) as total_overtime,
-                COUNT(DISTINCT employee_id) as employees_with_hours
-            FROM attendance 
-            WHERE date BETWEEN '$dateRangeStart' AND '$dateRangeEnd'
-        ")->fetch_one();
+                COALESCE(SUM(total_regular_hours), 0) as total_regular,
+                COALESCE(SUM(total_overtime_hours), 0) as total_overtime,
+                COUNT(DISTINCT employee_id) as employees_with_hours,
+                COUNT(DISTINCT CASE WHEN status = 'Approved' THEN employee_id END) as approved_count,
+                COUNT(DISTINCT CASE WHEN status = 'Pending' THEN employee_id END) as pending_count
+            FROM attendance_summary 
+            WHERE period_start <= ? AND period_end >= ?
+        ", [$dateRangeEnd, $dateRangeStart])->fetch_one();
     }
 
     $totalRegularPeriod = $timesheetSummary['total_regular'] ?? 0;
     $totalOvertimePeriod = $timesheetSummary['total_overtime'] ?? 0;
     $totalHoursPeriod = $totalRegularPeriod + $totalOvertimePeriod;
     $employeesWithHours = $timesheetSummary['employees_with_hours'] ?? 0;
+    $approvedCount = $timesheetSummary['approved_count'] ?? 0;
+    $pendingCount = $timesheetSummary['pending_count'] ?? 0;
 } catch (\Throwable $th) {
     $totalRegularPeriod = 0;
     $totalOvertimePeriod = 0;
     $totalHoursPeriod = 0;
     $employeesWithHours = 0;
+    $approvedCount = 0;
+    $pendingCount = 0;
     error_log("Error fetching timesheet summary: " . $th->getMessage());
 }
 
-// Get pending approval count
+// Get pending approval count - UPDATED to use attendance_summary
 try {
     if ($timesheetFilter === 'all') {
         $pendingApprovalCount = $db->query("
             SELECT COUNT(*) as count 
-            FROM attendance 
-            WHERE status = 'clocked_out'
+            FROM attendance_summary 
+            WHERE status = 'Pending'
         ")->fetch_one()['count'] ?? 0;
     } else {
         $pendingApprovalCount = $db->query("
             SELECT COUNT(*) as count 
-            FROM attendance 
-            WHERE date BETWEEN '$dateRangeStart' AND '$dateRangeEnd'
-            AND status = 'clocked_out'
-        ")->fetch_one()['count'] ?? 0;
+            FROM attendance_summary 
+            WHERE period_start <= ? AND period_end >= ?
+            AND status = 'Pending'
+        ", [$dateRangeEnd, $dateRangeStart])->fetch_one()['count'] ?? 0;
     }
 } catch (\Throwable $th) {
     $pendingApprovalCount = 0;
@@ -1228,6 +1332,7 @@ try {
             e.full_name as employee_name,
             e.position as employee_position,
             e.id as employee_id,
+            e.email,
             c.name as competency_name,
             c.required_level,
             (c.required_level - ca.proficiency_level) as gap_level,
@@ -2320,6 +2425,20 @@ $successionDeptFilter = isset($_GET['succession_dept']) ? $_GET['succession_dept
 $successionPositionFilter = isset($_GET['succession_position']) ? $_GET['succession_position'] : '';
 $successionSortFilter = isset($_GET['succession_sort']) ? $_GET['succession_sort'] : 'readiness';
 
+// Get all employees for the dropdown - without status filter or with correct column name
+$allEmployees = $db->query("
+    SELECT id, employee_number, full_name 
+    FROM employees 
+    ORDER BY full_name ASC
+")->find();
+
+// If find() returns a single record, convert to array
+if (!empty($allEmployees) && !is_array($allEmployees) || (isset($allEmployees['id']) && !isset($allEmployees[0]))) {
+    $allEmployees = [$allEmployees];
+}
+
+// Pass to view
+$data['allEmployees'] = $allEmployees;
 // Get distinct departments for filter
 try {
     $successionDepartments = $db->query("
@@ -3085,9 +3204,9 @@ try {
         FROM expense_claims 
         WHERE 1=1
         $claimsDateCondition
-    ")->fetch_one()['avg_amount'] ?? 1850;
+    ")->fetch_one()['avg_amount'] ?? 0;
 } catch (\Throwable $th) {
-    $claimsAverageAmount = 1850;
+    $claimsAverageAmount = 0;
     error_log("Error fetching average claim: " . $th->getMessage());
 }
 
@@ -3551,11 +3670,7 @@ if (!empty($payrollDepartmentFilter)) {
 $payrollWhereClause = !empty($payrollWhereConditions) ? "WHERE " . implode(" AND ", $payrollWhereConditions) : "";
 
 // ============================================
-// PAYROLL STATS WITH CLAIMS
-// ============================================
-
-// ============================================
-// PAYROLL STATS WITH CLAIMS AND SUMMARY STATUS
+// PAYROLL WITH APPROVED ATTENDANCE SUMMARIES ONLY
 // ============================================
 
 // Get all active employees for payroll with their payroll summary status
@@ -3566,44 +3681,51 @@ $payrollBaseSql = "
         e.position,
         e.department,
         e.hourly_rate,
-        -- Attendance totals
+        -- Attendance totals from APPROVED summaries
         COALESCE((
-            SELECT SUM(regular_hours) 
-            FROM attendance 
+            SELECT total_regular_hours 
+            FROM attendance_summary 
             WHERE employee_id = e.id 
-            AND date BETWEEN ? AND ?
-            AND status = 'clocked_out'
+            AND period_start = ? 
+            AND period_end = ?
+            AND status = 'approved'
         ), 0) as total_regular_hours,
         COALESCE((
-            SELECT SUM(overtime_hours) 
-            FROM attendance 
+            SELECT total_overtime_hours 
+            FROM attendance_summary 
             WHERE employee_id = e.id 
-            AND date BETWEEN ? AND ?
-            AND status = 'clocked_out'
+            AND period_start = ? 
+            AND period_end = ?
+            AND status = 'approved'
         ), 0) as total_overtime_hours,
-        -- Claims totals
+        -- Claims totals - FIXED: Using expense_date instead of approved_at
         COALESCE((
             SELECT SUM(amount) 
             FROM expense_claims 
             WHERE employee_id = e.id 
             AND status = 'Approved'
-            AND approved_at BETWEEN ? AND ?
+            AND expense_date BETWEEN ? AND ?
         ), 0) as total_claims_amount,
         (
             SELECT COUNT(*) 
             FROM expense_claims 
             WHERE employee_id = e.id 
             AND status = 'Approved'
-            AND approved_at BETWEEN ? AND ?
+            AND expense_date BETWEEN ? AND ?
         ) as claims_count,
         -- Payroll summary status (if exists)
         ps.id as payroll_summary_id,
         ps.status as payroll_status,
-        ps.generated_at as payroll_processed_date
+        ps.generated_at as payroll_processed_date,
+        -- Attendance summary status for reference
+        as2.status as attendance_summary_status
     FROM employees e
     LEFT JOIN payroll_summary ps ON e.id = ps.employee_id 
         AND ps.period_start = ? 
         AND ps.period_end = ?
+    LEFT JOIN attendance_summary as2 ON e.id = as2.employee_id 
+        AND as2.period_start = ? 
+        AND as2.period_end = ?
     WHERE e.status IN ('Active', 'Regular', 'Probationary')
 ";
 
@@ -3617,7 +3739,7 @@ try {
     $payrollAllEmployees = $db->query(
         $payrollBaseSql,
         [
-            // Attendance hours params (4)
+            // Attendance summary params (4) - for regular and overtime
             $payrollPeriodStart,
             $payrollPeriodEnd,
             $payrollPeriodStart,
@@ -3629,6 +3751,9 @@ try {
             $payrollPeriodEnd,
             // Payroll summary join params (2)
             $payrollPeriodStart,
+            $payrollPeriodEnd,
+            // Attendance summary join params (2)
+            $payrollPeriodStart,
             $payrollPeriodEnd
         ]
     )->find();
@@ -3637,14 +3762,16 @@ try {
     error_log("Error fetching employees for payroll: " . $th->getMessage());
 }
 
-// Calculate payroll totals
+// Initialize counters
 $payrollTotalGross = 0;
 $payrollTotalStatutoryDeductions = 0;
 $payrollTotalClaims = 0;
 $payrollTotalNet = 0;
 $payrollProcessedCount = 0;
 $payrollPendingCount = 0;
+$payrollNoDataCount = 0;
 
+// Build the $payrollEmployees array with all calculated data
 $payrollEmployees = [];
 foreach ($payrollAllEmployees as $emp) {
     // Calculate gross pay (regular + overtime)
@@ -3665,13 +3792,19 @@ foreach ($payrollAllEmployees as $emp) {
     if (!empty($emp['payroll_status'])) {
         $status = $emp['payroll_status'];
     } else {
-        $status = ($emp['total_regular_hours'] > 0 || $claimsAmount > 0) ? 'Pending' : 'Pending';
+        // Only show as Pending if there's approved attendance OR claims
+        $hasApprovedAttendance = ($emp['total_regular_hours'] > 0 || $emp['total_overtime_hours'] > 0);
+        $hasClaims = ($claimsAmount > 0);
+        $status = ($hasApprovedAttendance || $hasClaims) ? 'Pending' : 'No Data';
     }
 
+    // Update counters based on status
     if ($status == 'Processed' || $status == 'Processing') {
         $payrollProcessedCount++;
-    } else {
+    } elseif ($status == 'Pending') {
         $payrollPendingCount++;
+    } elseif ($status == 'No Data') {
+        $payrollNoDataCount++;
     }
 
     $payrollTotalGross += $grossPay;
@@ -3679,6 +3812,7 @@ foreach ($payrollAllEmployees as $emp) {
     $payrollTotalClaims += $claimsAmount;
     $payrollTotalNet += $netPay;
 
+    // Add all calculated data to the employee array
     $emp['regular_pay'] = $regularPay;
     $emp['overtime_pay'] = $overtimePay;
     $emp['gross_pay'] = $grossPay;
@@ -3691,6 +3825,7 @@ foreach ($payrollAllEmployees as $emp) {
     $emp['status'] = $status;
     $emp['payroll_summary_id'] = $emp['payroll_summary_id'] ?? null;
     $emp['payroll_processed_date'] = $emp['payroll_processed_date'] ?? null;
+    $emp['attendance_summary_status'] = $emp['attendance_summary_status'] ?? 'none';
     $emp['initials'] = getInitials($emp['full_name']);
 
     $payrollEmployees[] = $emp;
@@ -3698,8 +3833,72 @@ foreach ($payrollAllEmployees as $emp) {
 
 $payrollTotalEmployees = count($payrollEmployees);
 
+
+// Get total count of payroll history periods
+try {
+    $result = $db->query("
+        SELECT COUNT(DISTINCT CONCAT(period_start, period_end)) as total
+        FROM payroll_summary
+        WHERE status = 'Processed'
+    ")->find();
+    $payrollHistoryTotal = $result[0]['total'] ?? 0;
+} catch (\Throwable $th) {
+    $payrollHistoryTotal = 0;
+    error_log("Error counting payroll history: " . $th->getMessage());
+}
+
+// Get ALL payroll history (unpaginated)
+try {
+    $allPayrollHistory = $db->query("
+        SELECT 
+            period_start,
+            period_end,
+            COUNT(DISTINCT employee_id) as employee_count,
+            SUM(gross_pay) as total_gross,
+            SUM(net_pay) as total_net,
+            SUM(claims) as total_claims,
+            MAX(generated_at) as last_generated,
+            GROUP_CONCAT(DISTINCT status) as statuses
+        FROM payroll_summary
+        WHERE status = 'Processed'
+        GROUP BY period_start, period_end
+        ORDER BY period_start DESC, period_end DESC
+    ")->find();
+} catch (\Throwable $th) {
+    $allPayrollHistory = [];
+    error_log("Error fetching all payroll history: " . $th->getMessage());
+}
+
 // ============================================
-// FILTER EMPLOYEES BASED ON STATUS (USING DATABASE STATUS)
+// CALCULATE APPROVED AND PENDING COUNTS FOR PROCESS ALL BUTTON
+// ============================================
+// Now we can safely access all the data because $payrollEmployees is fully built
+
+$payrollReadyForProcessing = 0; // Approved attendance + NOT processed
+$payrollTotalApproved = 0;      // Total with approved attendance (including processed)
+$payrollApprovedAndProcessed = 0; // Approved attendance + already processed
+$payrollPendingAttendanceCount = 0; // Pending attendance approval
+
+foreach ($payrollEmployees as $emp) {
+    if ($emp['attendance_summary_status'] == 'approved') {
+        $payrollTotalApproved++;
+
+        // Check if it's already processed
+        if ($emp['status'] == 'Processed' || $emp['status'] == 'Processing') {
+            $payrollApprovedAndProcessed++;
+        } else {
+            $payrollReadyForProcessing++;
+        }
+    } elseif ($emp['attendance_summary_status'] == 'pending') {
+        $payrollPendingAttendanceCount++;
+    }
+}
+
+// For the Process All button, we use $payrollReadyForProcessing
+// For display counters, we have all the data we need
+
+// ============================================
+// FILTER EMPLOYEES BASED ON STATUS
 // ============================================
 
 // Filter employees based on status if needed
@@ -3739,11 +3938,174 @@ foreach ($payrollPaginatedEmployees as $emp) {
     $payrollPageNetTotal += $emp['net_pay'];
 }
 $payrollPageAverageNet = $payrollPageNetTotal > 0 ? round($payrollPageNetTotal / count($payrollPaginatedEmployees)) : 0;
+
 // Format currency function
 function formatPayrollCurrency($amount)
 {
     return '₱' . number_format($amount, 2);
 }
+
+// ============================================
+// PAYROLL HISTORY SECTION
+// ============================================
+
+// Get payroll history grouped by period
+try {
+    $payrollHistory = $db->query("
+        SELECT 
+            period_start,
+            period_end,
+            COUNT(DISTINCT employee_id) as employee_count,
+            SUM(gross_pay) as total_gross,
+            SUM(net_pay) as total_net,
+            SUM(claims) as total_claims,
+            MAX(generated_at) as last_generated,
+            GROUP_CONCAT(DISTINCT status) as statuses
+        FROM payroll_summary
+        WHERE status = 'Processed'
+        GROUP BY period_start, period_end
+        ORDER BY period_start DESC, period_end DESC
+        LIMIT 3
+    ")->find();
+} catch (\Throwable $th) {
+    $payrollHistory = [];
+    error_log("Error fetching payroll history: " . $th->getMessage());
+}
+
+// Handle Excel export request
+if (isset($_GET['export_payroll']) && isset($_GET['period_start']) && isset($_GET['period_end'])) {
+    $periodStart = $_GET['period_start'];
+    $periodEnd = $_GET['period_end'];
+
+    // Get payroll data for this period
+    $exportData = $db->query("
+        SELECT 
+            e.employee_number,
+            e.full_name,
+            e.position,
+            e.department,
+            ps.total_regular_hours,
+            ps.total_overtime_hours,
+            ps.hourly_rate,
+            ps.gross_pay,
+            ps.claims,
+            ps.total_deductions,
+            ps.net_pay,
+            ps.status,
+            ps.generated_at
+        FROM payroll_summary ps
+        JOIN employees e ON ps.employee_id = e.id
+        WHERE ps.period_start = ? AND ps.period_end = ?
+        ORDER BY e.full_name
+    ", [$periodStart, $periodEnd])->find();
+
+    // Generate Excel file
+    header('Content-Type: application/vnd.ms-excel');
+    header('Content-Disposition: attachment; filename="payroll_' . $periodStart . '_to_' . $periodEnd . '.xls"');
+
+    echo "Payroll Period: " . date('F j, Y', strtotime($periodStart)) . " - " . date('F j, Y', strtotime($periodEnd)) . "\n";
+    echo "Generated: " . date('F j, Y H:i:s') . "\n\n";
+
+    // Headers
+    echo "Employee #\tFull Name\tPosition\tDepartment\tRegular Hours\tOvertime Hours\tHourly Rate\tGross Pay\tClaims\tDeductions\tNet Pay\tStatus\tProcessed Date\n";
+
+    // Data rows
+    foreach ($exportData as $row) {
+        echo implode("\t", [
+            $row['employee_number'],
+            $row['full_name'],
+            $row['position'],
+            $row['department'],
+            round($row['total_regular_hours']),
+            round($row['total_overtime_hours']),
+            number_format($row['hourly_rate'], 2),
+            number_format($row['gross_pay'], 2),
+            number_format($row['claims'], 2),
+            number_format($row['total_deductions'], 2),
+            number_format($row['net_pay'], 2),
+            $row['status'],
+            date('Y-m-d H:i', strtotime($row['generated_at']))
+        ]) . "\n";
+    }
+
+    // Totals
+    echo "\n";
+    echo "TOTALS\t\t\t\t" .
+        round(array_sum(array_column($exportData, 'total_regular_hours'))) . "\t" .
+        round(array_sum(array_column($exportData, 'total_overtime_hours'))) . "\t\t" .
+        number_format(array_sum(array_column($exportData, 'gross_pay')), 2) . "\t" .
+        number_format(array_sum(array_column($exportData, 'claims')), 2) . "\t" .
+        number_format(array_sum(array_column($exportData, 'total_deductions')), 2) . "\t" .
+        number_format(array_sum(array_column($exportData, 'net_pay')), 2) . "\n";
+
+    exit();
+}
+
+// Handle export all history
+if (isset($_GET['export_all_history'])) {
+
+    // Get all processed payroll data grouped by period
+    $allHistoryData = $db->query("
+        SELECT 
+            ps.period_start,
+            ps.period_end,
+            COUNT(DISTINCT ps.employee_id) as employee_count,
+            SUM(ps.gross_pay) as total_gross,
+            SUM(ps.net_pay) as total_net,
+            SUM(ps.claims) as total_claims,
+            MAX(ps.generated_at) as last_generated
+        FROM payroll_summary ps
+        WHERE ps.status = 'Processed'
+        GROUP BY ps.period_start, ps.period_end
+        ORDER BY ps.period_start DESC, ps.period_end DESC
+    ")->find();
+
+    // Generate Excel file
+    header('Content-Type: application/vnd.ms-excel');
+    header('Content-Disposition: attachment; filename="payroll_complete_history_' . date('Y-m-d') . '.xls"');
+
+    echo "Payroll Complete History\n";
+    echo "Generated: " . date('F j, Y H:i:s') . "\n\n";
+
+    // Headers
+    echo "Period Start\tPeriod End\tProcessed Date\tEmployees\tGross Pay\tClaims\tNet Pay\n";
+
+    // Data rows
+    $totalGross = 0;
+    $totalClaims = 0;
+    $totalNet = 0;
+
+    foreach ($allHistoryData as $row) {
+        echo implode("\t", [
+            date('Y-m-d', strtotime($row['period_start'])),
+            date('Y-m-d', strtotime($row['period_end'])),
+            date('Y-m-d', strtotime($row['last_generated'])),
+            $row['employee_count'],
+            number_format($row['total_gross'], 2),
+            number_format($row['total_claims'], 2),
+            number_format($row['total_net'], 2)
+        ]) . "\n";
+
+        $totalGross += $row['total_gross'];
+        $totalClaims += $row['total_claims'];
+        $totalNet += $row['total_net'];
+    }
+
+    // Grand Totals
+    echo "\n";
+    echo "GRAND TOTALS\t\t\t" .
+        array_sum(array_column($allHistoryData, 'employee_count')) . "\t" .
+        number_format($totalGross, 2) . "\t" .
+        number_format($totalClaims, 2) . "\t" .
+        number_format($totalNet, 2) . "\n";
+
+    exit();
+}
+
+// REMOVE the duplicate calculation at the bottom - it's no longer needed
+// The counts are now properly calculated above
+
+
 // ============================================
 // EMPLOYEE SCHEDULES SECTION
 // ============================================
@@ -4625,6 +4987,68 @@ function getRequisitionIcon($department)
     }
 }
 
+// ============================================
+// INTERVENTION ASSIGNMENTS
+// ============================================
+
+// Pagination for interventions
+$interventionPage = isset($_GET['intervention_page']) ? max(1, (int) $_GET['intervention_page']) : 1;
+$interventionPerPage = 10;
+$interventionOffset = ($interventionPage - 1) * $interventionPerPage;
+
+// Get total interventions count for pagination
+try {
+    $totalInterventions = $db->query("
+        SELECT COUNT(*) as count 
+        FROM intervention_assignments
+    ")->fetch_one()['count'] ?? 0;
+} catch (\Throwable $th) {
+    $totalInterventions = 0;
+    error_log("Error fetching total interventions: " . $th->getMessage());
+}
+
+// Get interventions with employee details
+try {
+    $interventionAssignments = $db->query("
+        SELECT 
+            ia.*,
+            e.id as employee_id,
+            e.full_name,
+            e.position,
+            e.department,
+            e.employee_number,
+            DATE_FORMAT(ia.assigned_date, '%b %e, %Y') as formatted_assigned,
+            DATE_FORMAT(ia.due_date, '%b %e, %Y') as formatted_due,
+            DATE_FORMAT(ia.completion_date, '%b %e, %Y') as formatted_completion,
+            DATEDIFF(ia.due_date, CURDATE()) as days_remaining,
+            CASE 
+                WHEN ia.status = 'completed' THEN 'bg-green-50 text-green-700 border-green-200'
+                WHEN ia.status = 'in_progress' THEN 'bg-blue-50 text-blue-700 border-blue-200'
+                WHEN ia.status = 'pending' AND ia.due_date < CURDATE() THEN 'bg-red-50 text-red-700 border-red-200'
+                WHEN ia.status = 'pending' THEN 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                WHEN ia.status = 'cancelled' THEN 'bg-gray-50 text-gray-700 border-gray-200'
+                ELSE 'bg-gray-50 text-gray-700 border-gray-200'
+            END as status_class,
+            CONCAT(LEFT(e.full_name, 1), COALESCE(RIGHT(LEFT(e.full_name, INSTR(e.full_name, ' ') + 1), 1), RIGHT(e.full_name, 1))) as initials
+        FROM intervention_assignments ia
+        JOIN employees e ON ia.employee_id = e.id
+        ORDER BY 
+            CASE ia.status
+                WHEN 'pending' THEN 1
+                WHEN 'in_progress' THEN 2
+                WHEN 'completed' THEN 3
+                WHEN 'cancelled' THEN 4
+            END,
+            ia.due_date ASC,
+            ia.assigned_date DESC
+        LIMIT $interventionPerPage OFFSET $interventionOffset
+    ")->find();
+} catch (\Throwable $th) {
+    $interventionAssignments = [];
+    error_log("Error fetching interventions: " . $th->getMessage());
+}
+
+$totalInterventionPages = ceil($totalInterventions / $interventionPerPage);
 
 
 view_path('main', 'index', [
@@ -4667,6 +5091,10 @@ view_path('main', 'index', [
     // Applicants
     'applicants' => $allApplicants,
     'recentApplicants' => $recentApplicants,
+
+    'interventionAssignments' => $interventionAssignments,
+    'interventionPage' => $interventionPage,
+    'totalInterventionPages' => $totalInterventionPages,
 
     // Employees
     'hiredEmployees' => $hiredEmployees,
@@ -4958,6 +5386,13 @@ view_path('main', 'index', [
     'payrollPageOvertimeHours' => $payrollPageOvertimeHours,
     'payrollPageAverageNet' => $payrollPageAverageNet,
     'payrollPageClaimsTotal' => $payrollPageClaimsTotal,
+    'payrollHistory' => $payrollHistory,
+    'payrollTotalClaims' => $payrollTotalClaims,
+    // NEW HISTORY VARIABLES
+    'allPayrollHistory' => $allPayrollHistory, // All history for view all page
+    'payrollHistoryTotal' => $payrollHistoryTotal,
+    'allEmployees' => $allEmployees,
+
 
     // schedule
     'schedulePage' => $schedulePage,

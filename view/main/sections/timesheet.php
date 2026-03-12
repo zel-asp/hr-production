@@ -5,12 +5,6 @@
             <h2 class="text-2xl font-semibold text-gray-800">Timesheet Management</h2>
             <p class="text-gray-500 text-sm mt-1">Review and approve employee timesheets</p>
         </div>
-        <!-- <div class="flex gap-2">
-            <button class="btn-primary" onclick="approveAllTimesheets()">
-                <i class="fas fa-check-circle"></i>
-                Approve All
-            </button>
-        </div> -->
     </div>
 
     <!-- Period Summary Cards -->
@@ -161,12 +155,15 @@
                                 if ($totalHours == 0) {
                                     $status = 'No Hours';
                                     $statusClass = 'bg-gray-100 text-gray-600 border border-gray-200';
-                                } elseif ($timesheet['timesheet_status'] == 'Approved') {
+                                } elseif ($timesheet['timesheet_status'] == 'approved') {
                                     $status = 'Approved';
                                     $statusClass = 'bg-green-50 text-green-700 border border-green-200';
-                                } else {
-                                    $status = 'Pending';
+                                } elseif ($timesheet['timesheet_status'] == 'pending') {
+                                    $status = 'pending';
                                     $statusClass = 'bg-yellow-50 text-yellow-700 border border-yellow-200';
+                                } else {
+                                    $status = 'pending';
+                                    $statusClass = 'bg-red-50 text-red-700 border border-red-200';
                                 }
                                 ?>
                                 <tr class="border-b border-gray-50 hover:bg-gray-50/50 transition-colors duration-150">
@@ -199,19 +196,96 @@
                                         </div>
                                     </td>
                                     <td class="py-3 px-4">
-                                        <div class="flex items-center justify-center gap-3">
+                                        <div class="flex items-center justify-center gap-2">
+                                            <!-- View Button - Always enabled with tooltip -->
                                             <button onclick="openModal('timesheetModal<?= $timesheet['employee_id'] ?>')"
-                                                class="text-sm text-gray-500 hover:text-gray-700 bg-gray-50 hover:bg-gray-100 px-2.5 py-1 rounded-lg transition-colors duration-200 flex items-center gap-1">
-                                                <i class="fas fa-eye text-xs"></i>
-                                                View
+                                                class="group relative w-9 h-9 flex items-center justify-center text-gray-500 hover:text-gray-700 bg-white hover:bg-gray-50 rounded-lg transition-all duration-200 border border-gray-200 shadow-sm hover:shadow"
+                                                title="View timesheet details">
+                                                <i class="fas fa-eye text-sm"></i>
+                                                <span
+                                                    class="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
+                                                    View Details
+                                                </span>
                                             </button>
-                                            <?php if ($status != 'Approved' && $totalHours > 0): ?>
-                                                <button
-                                                    class="text-sm text-green-600 hover:text-green-700 bg-green-50 hover:bg-green-100 px-2.5 py-1 rounded-lg transition-colors duration-200 flex items-center gap-1 border border-green-200"
-                                                    onclick="approveTimesheet(<?= $timesheet['employee_id'] ?>, '<?= htmlspecialchars($timesheet['full_name']) ?>')">
-                                                    <i class="fas fa-check text-xs"></i>
-                                                    Approve
-                                                </button>
+
+                                            <?php
+                                            // Get status (case-insensitive)
+                                            $dbStatus = strtolower($timesheet['timesheet_status'] ?? '');
+                                            $isApproved = $dbStatus === 'approved';
+                                            $isRejected = $dbStatus === 'rejected';
+                                            $isPending = !$isApproved && !$isRejected && $totalHours > 0;
+                                            ?>
+
+                                            <?php if ($isApproved): ?>
+                                                <!-- APPROVED - Green success badge -->
+                                                <div class="group relative">
+                                                    <div
+                                                        class="w-9 h-9 flex items-center justify-center text-green-600 bg-green-50 rounded-lg border border-green-200 cursor-default">
+                                                        <i class="fas fa-check-circle text-sm"></i>
+                                                    </div>
+                                                    <span
+                                                        class="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
+                                                        Approved
+                                                    </span>
+                                                </div>
+
+                                            <?php elseif ($isRejected): ?>
+                                                <!-- REJECTED - Red danger badge -->
+                                                <div class="group relative">
+                                                    <div
+                                                        class="w-9 h-9 flex items-center justify-center text-red-600 bg-red-50 rounded-lg border border-red-200 cursor-default">
+                                                        <i class="fas fa-times-circle text-sm"></i>
+                                                    </div>
+                                                    <span
+                                                        class="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
+                                                        Rejected
+                                                    </span>
+                                                </div>
+
+                                            <?php elseif ($isPending): ?>
+                                                <!-- PENDING - Active approve button with loading state -->
+                                                <form action="/approve-timesheet" method="POST" class="inline-block">
+                                                    <input type="hidden" name="__method" value="PATCH">
+                                                    <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+
+                                                    <?php if (!empty($timesheet['summary_id'])): ?>
+                                                        <input type="hidden" name="summary_id" value="<?= $timesheet['summary_id'] ?>">
+                                                    <?php else: ?>
+                                                        <input type="hidden" name="employee_id"
+                                                            value="<?= $timesheet['employee_id'] ?>">
+                                                        <?php if (!empty($timesheet['summary_period_start']) && !empty($timesheet['summary_period_end'])): ?>
+                                                            <input type="hidden" name="period_start"
+                                                                value="<?= $timesheet['summary_period_start'] ?>">
+                                                            <input type="hidden" name="period_end"
+                                                                value="<?= $timesheet['summary_period_end'] ?>">
+                                                        <?php endif; ?>
+                                                    <?php endif; ?>
+
+                                                    <button type="submit"
+                                                        class="group relative w-9 h-9 flex items-center justify-center text-green-600 hover:text-white bg-green-50 hover:bg-green-600 rounded-lg transition-all duration-200 border border-green-200 hover:border-green-600 shadow-sm hover:shadow-md"
+                                                        onclick="return confirm('Approve timesheet for <?= htmlspecialchars($timesheet['full_name']) ?>?')"
+                                                        title="Approve timesheet">
+                                                        <i
+                                                            class="fas fa-check text-sm group-hover:scale-110 transition-transform duration-200"></i>
+                                                        <span
+                                                            class="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
+                                                            Approve
+                                                        </span>
+                                                    </button>
+                                                </form>
+
+                                            <?php else: ?>
+                                                <!-- NO HOURS - Gray disabled badge -->
+                                                <div class="group relative">
+                                                    <div
+                                                        class="w-9 h-9 flex items-center justify-center text-gray-400 bg-gray-100 rounded-lg border border-gray-200 cursor-default">
+                                                        <i class="fas fa-clock text-sm"></i>
+                                                    </div>
+                                                    <span
+                                                        class="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
+                                                        No Hours
+                                                    </span>
+                                                </div>
                                             <?php endif; ?>
                                         </div>
                                     </td>
@@ -321,7 +395,8 @@
                         <div>
                             <h3 class="text-lg font-semibold text-gray-800">Timesheet Details</h3>
                             <p class="text-sm text-gray-500"><?= htmlspecialchars($timesheet['full_name']) ?> •
-                                <?= htmlspecialchars($timesheet['position'] ?? '') ?></p>
+                                <?= htmlspecialchars($timesheet['position'] ?? '') ?>
+                            </p>
                         </div>
                     </div>
                     <button onclick="closeModal('<?= $modalId ?>')" class="text-gray-400 hover:text-gray-600">
@@ -339,7 +414,8 @@
                                 <p class="text-base font-semibold text-gray-800"><?= $filterLabel ?></p>
                                 <?php if ($timesheetFilter !== 'all'): ?>
                                     <p class="text-xs text-blue-500"><?= date('M j', strtotime($dateRangeStart)) ?> -
-                                        <?= date('M j, Y', strtotime($dateRangeEnd)) ?></p>
+                                        <?= date('M j, Y', strtotime($dateRangeEnd)) ?>
+                                    </p>
                                 <?php else: ?>
                                     <p class="text-xs text-blue-500">All time</p>
                                 <?php endif; ?>
@@ -366,7 +442,8 @@
                         <div class="bg-white border border-gray-200 rounded-lg p-4">
                             <p class="text-xs text-gray-400 mb-1">Department</p>
                             <p class="text-base font-medium text-gray-800">
-                                <?= htmlspecialchars($timesheet['department'] ?? 'N/A') ?></p>
+                                <?= htmlspecialchars($timesheet['department'] ?? 'N/A') ?>
+                            </p>
                         </div>
                         <div class="bg-white border border-gray-200 rounded-lg p-4">
                             <p class="text-xs text-gray-400 mb-1">Hourly Rate</p>
@@ -488,12 +565,28 @@
                                         class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200">
                                         Cancel
                                     </button>
-                                    <button
-                                        onclick="approveTimesheet(<?= $timesheet['employee_id'] ?>, '<?= htmlspecialchars($timesheet['full_name']) ?>')"
-                                        class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors duration-200 flex items-center gap-2">
-                                        <i class="fas fa-check"></i>
-                                        Approve Timesheet
-                                    </button>
+                                    <form action="/approve-timesheet" method="POST" class="inline-block">
+                                        <input type="hidden" name="__method" value="PATCH">
+                                        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+
+                                        <?php if (!empty($timesheet['summary_id'])): ?>
+                                            <input type="hidden" name="summary_id" value="<?= $timesheet['summary_id'] ?>">
+                                        <?php else: ?>
+                                            <input type="hidden" name="employee_id" value="<?= $timesheet['employee_id'] ?>">
+                                            <?php if (!empty($timesheet['summary_period_start']) && !empty($timesheet['summary_period_end'])): ?>
+                                                <input type="hidden" name="period_start" value="<?= $timesheet['summary_period_start'] ?>">
+                                                <input type="hidden" name="period_end" value="<?= $timesheet['summary_period_end'] ?>">
+                                            <?php endif; ?>
+                                        <?php endif; ?>
+
+                                        <<button
+                                            class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors duration-200 flex items-center gap-2">
+                                            <i class="fas fa-check"></i>
+                                            Approve Timesheet
+                                            </button>
+                                    </form>
+
+
                                 </div>
                             <?php else: ?>
                                 <button onclick="closeModal('<?= $modalId ?>')"

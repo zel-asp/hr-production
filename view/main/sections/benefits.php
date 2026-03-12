@@ -95,7 +95,8 @@
                                         </div>
                                         <div>
                                             <h4 class="font-medium text-gray-800">
-                                                <?= htmlspecialchars($plan['provider_name']) ?></h4>
+                                                <?= htmlspecialchars($plan['provider_name']) ?>
+                                            </h4>
                                             <p class="text-xs text-gray-500 mt-1">Principal + dependents</p>
                                             <div class="flex items-center gap-3 mt-2">
                                                 <span class="text-xs text-gray-400">Coverage:
@@ -169,11 +170,6 @@
                                             </p>
                                         </div>
                                     </div>
-                                    <button
-                                        onclick="renewBenefit(<?= $expiring['id'] ?>, '<?= htmlspecialchars($expiring['full_name']) ?>')"
-                                        class="text-sm text-gray-600 hover:text-gray-800 bg-white hover:bg-gray-100 px-3 py-1.5 rounded-lg transition-colors duration-200 border border-gray-200">
-                                        Renew
-                                    </button>
                                 </div>
                             <?php endforeach; ?>
                         <?php else: ?>
@@ -203,7 +199,8 @@
                                     </div>
                                     <div class="flex-1">
                                         <p class="text-sm font-medium text-gray-800">
-                                            <?= htmlspecialchars($enrollment['full_name']) ?></p>
+                                            <?= htmlspecialchars($enrollment['full_name']) ?>
+                                        </p>
                                         <p class="text-xs text-gray-400">
                                             Enrolled in <?= htmlspecialchars($enrollment['provider_name']) ?> •
                                             <?= $enrollment['days_ago'] ?> days ago
@@ -273,19 +270,23 @@
                                                 <span
                                                     class="text-sm font-medium text-gray-800"><?= htmlspecialchars($benefit['full_name']) ?></span>
                                                 <p class="text-xs text-gray-400">
-                                                    <?= htmlspecialchars($benefit['position'] ?? '') ?></p>
+                                                    <?= htmlspecialchars($benefit['position'] ?? '') ?>
+                                                </p>
                                             </div>
                                         </div>
                                     </td>
                                     <td class="py-3 text-sm text-gray-600"><?= htmlspecialchars($benefit['provider_name']) ?>
                                     </td>
                                     <td class="py-3 text-sm text-gray-600">
-                                        <?= htmlspecialchars($benefit['benefit_type'] ?? 'HMO') ?></td>
+                                        <?= htmlspecialchars($benefit['benefit_type'] ?? 'HMO') ?>
+                                    </td>
                                     <td class="py-3 text-sm text-gray-600"><?= $benefit['formatted_effective'] ?></td>
                                     <td class="py-3 text-sm text-gray-600">
-                                        <?= $benefit['expiry_date'] ? $benefit['formatted_expiry'] : 'No Expiry' ?></td>
+                                        <?= $benefit['expiry_date'] ? $benefit['formatted_expiry'] : 'No Expiry' ?>
+                                    </td>
                                     <td class="py-3 text-sm font-medium text-gray-800">
-                                        <?= formatHmoCurrency($benefit['monthly_premium'] ?? 0) ?></td>
+                                        <?= formatHmoCurrency($benefit['monthly_premium'] ?? 0) ?>
+                                    </td>
                                     <td class="py-3">
                                         <span
                                             class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium <?= $benefit['status_class'] ?>">
@@ -294,19 +295,11 @@
                                     </td>
                                     <td class="py-3">
                                         <div class="flex items-center gap-2">
-                                            <button onclick="viewBenefit(<?= $benefit['id'] ?>)"
+                                            <button onclick="openModal('viewBenefitModal<?= $benefit['id'] ?>')"
                                                 class="text-sm text-gray-500 hover:text-gray-700 bg-gray-50 hover:bg-gray-100 px-2.5 py-1 rounded-lg transition-colors duration-200 flex items-center gap-1">
                                                 <i class="fas fa-eye text-xs"></i>
                                                 View
                                             </button>
-                                            <?php if ($benefit['status_text'] == 'Expiring Soon' || $benefit['status_text'] == 'Expired'): ?>
-                                                <button
-                                                    onclick="renewBenefit(<?= $benefit['id'] ?>, '<?= htmlspecialchars($benefit['full_name']) ?>')"
-                                                    class="text-sm text-green-600 hover:text-green-700 bg-green-50 hover:bg-green-100 px-2.5 py-1 rounded-lg transition-colors duration-200 border border-green-200 flex items-center gap-1">
-                                                    <i class="fas fa-sync-alt text-xs"></i>
-                                                    Renew
-                                                </button>
-                                            <?php endif; ?>
                                         </div>
                                     </td>
                                 </tr>
@@ -371,6 +364,108 @@
         </div>
     </div>
 </div>
+
+<!-- HMO Enrollment Modals -->
+<?php if (!empty($hmoBenefitsList)): ?>
+    <?php foreach ($hmoBenefitsList as $benefit): ?>
+        <div id="viewBenefitModal<?= $benefit['id'] ?>"
+            class="modal fixed inset-0 bg-gray-800/40 flex items-center justify-center hidden z-50">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800">Benefit Enrollment Details</h3>
+                        <button onclick="closeModal('viewBenefitModal<?= $benefit['id'] ?>')"
+                            class="text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <div class="space-y-4">
+                        <!-- Employee Information -->
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <h4 class="text-sm font-medium text-gray-700 mb-3">Employee Information</h4>
+                            <div class="grid grid-cols-2 gap-3 text-sm">
+                                <div>
+                                    <p class="text-gray-500">Name</p>
+                                    <p class="font-medium text-gray-800">
+                                        <?= htmlspecialchars($benefit['full_name']) ?>
+                                    </p>
+                                </div>
+                                <div>
+                                    <p class="text-gray-500">Position</p>
+                                    <p class="font-medium text-gray-800">
+                                        <?= htmlspecialchars($benefit['position'] ?? 'N/A') ?>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Benefit Details -->
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <h4 class="text-sm font-medium text-gray-700 mb-3">Benefit Details</h4>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center pb-2 border-b border-gray-100">
+                                    <span class="text-sm text-gray-500">Provider</span>
+                                    <span class="text-sm font-medium text-gray-800">
+                                        <?= htmlspecialchars($benefit['provider_name']) ?>
+                                    </span>
+                                </div>
+                                <div class="flex justify-between items-center pb-2 border-b border-gray-100">
+                                    <span class="text-sm text-gray-500">Benefit Type</span>
+                                    <span class="text-sm font-medium text-gray-800">
+                                        <?= htmlspecialchars($benefit['benefit_type'] ?? 'HMO') ?>
+                                    </span>
+                                </div>
+                                <div class="flex justify-between items-center pb-2 border-b border-gray-100">
+                                    <span class="text-sm text-gray-500">Coverage Amount</span>
+                                    <span class="text-sm font-medium text-gray-800">
+                                        <?= formatHmoCurrency($benefit['coverage_amount'] ?? 200000) ?>
+                                    </span>
+                                </div>
+                                <div class="flex justify-between items-center pb-2 border-b border-gray-100">
+                                    <span class="text-sm text-gray-500">Monthly Premium</span>
+                                    <span class="text-sm font-medium text-gray-800">
+                                        <?= formatHmoCurrency($benefit['monthly_premium'] ?? 0) ?>
+                                    </span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-500">Status</span>
+                                    <span
+                                        class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium <?= $benefit['status_class'] ?>">
+                                        <?= $benefit['status_text'] ?>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dates -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="bg-blue-50 rounded-lg p-3">
+                                <p class="text-xs text-blue-600 mb-1">Effective Date</p>
+                                <p class="text-sm font-medium text-blue-800">
+                                    <?= $benefit['formatted_effective'] ?>
+                                </p>
+                            </div>
+                            <div class="bg-orange-50 rounded-lg p-3">
+                                <p class="text-xs text-orange-600 mb-1">Expiry Date</p>
+                                <p class="text-sm font-medium text-orange-800">
+                                    <?= $benefit['formatted_expiry'] ?? 'No Expiry' ?>
+                                </p>
+                            </div>
+                        </div>
+                        <!-- Actions -->
+                        <div class="flex justify-end gap-2 pt-4 border-t border-gray-200">
+                            <button type="button" onclick="closeModal('viewBenefitModal<?= $benefit['id'] ?>')"
+                                class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <?php endforeach; ?>
+<?php endif; ?>
 
 <script>
     function applyHmoFilter() {

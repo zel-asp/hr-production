@@ -49,6 +49,7 @@
                     <option value="Approved" <?= $claimsStatusFilter == 'Approved' ? 'selected' : '' ?>>Approved</option>
                     <option value="Paid" <?= $claimsStatusFilter == 'Paid' ? 'selected' : '' ?>>Paid</option>
                     <option value="Rejected" <?= $claimsStatusFilter == 'Rejected' ? 'selected' : '' ?>>Rejected</option>
+                    <option value="Witing" <?= $claimsStatusFilter == 'Witing' ? 'selected' : '' ?>>Witing</option>
                 </select>
                 <select name="claims_date" onchange="applyClaimsFilter()"
                     class="text-sm bg-white border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-200">
@@ -91,6 +92,9 @@
                             <th class="text-left py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Status
                             </th>
                             <th class="text-left py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Receipt
+                            </th>
+                            <th class="text-left py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Actions</th>
                         </tr>
                     </thead>
@@ -119,21 +123,34 @@
                                         </span>
                                     </td>
                                     <td class="py-3">
+                                        <?php if ($claim['receipt_path']): ?>
+                                            <a href="<?= $claim['receipt_path'] ?>" target="_blank" class="btn-primary">
+                                                <i class="fas fa-receipt text-xs"></i>
+                                                Receipt
+                                            </a>
+                                        <?php else: ?>
+                                            <span class="text-xs">No receipt</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="py-3">
                                         <div class="flex items-center gap-2">
-                                            <?php if ($claim['receipt_path']): ?>
-                                                <a href="<?= $claim['receipt_path'] ?>" target="_blank" class="btn-primary">
-                                                    <i class="fas fa-receipt text-xs"></i>
-                                                    Receipt
-                                                </a>
-                                            <?php else: ?>
-                                                <span class="text-xs">No receipt</span>
-                                            <?php endif; ?>
                                             <?php if ($claim['status'] == 'Pending'): ?>
-                                                <button onclick="approveClaim(<?= $claim['id'] ?>)"
-                                                    class="text-sm text-green-600 hover:text-green-700 bg-green-50 hover:bg-green-100 px-2.5 py-1 rounded-lg transition-colors duration-200 border border-green-200 flex items-center gap-1">
-                                                    <i class="fas fa-check text-xs"></i>
-                                                    Approve
-                                                </button>
+                                                <form action="/updateClaimStatus" method="POST" class="flex gap-1">
+                                                    <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                                                    <input type="hidden" name="__method" value="PATCH">
+                                                    <input type="hidden" name="id" value="<?= $claim['id'] ?>">
+
+                                                    <button type="submit" name="action" value="approve"
+                                                        class="text-sm text-green-600 hover:text-green-700 bg-green-50 hover:bg-green-100 px-2.5 py-1 rounded-lg transition-colors duration-200 border border-green-200 flex items-center gap-1">
+                                                        <i class="fas fa-check text-xs"></i>
+                                                    </button>
+
+                                                    <button type="submit" name="action" value="decline"
+                                                        class="text-sm text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-lg transition-colors duration-200 border border-red-200 flex items-center gap-1">
+                                                        <i class="fas fa-xmark text-xs"></i>
+                                                    </button>
+                                                </form>
+
                                             <?php endif; ?>
                                         </div>
                                     </td>

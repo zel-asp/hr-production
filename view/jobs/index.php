@@ -6,7 +6,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>HotelJobs · Complete Application</title>
         <!-- Tailwind + Font Awesome -->
-        <link rel="stylesheet" href="/assets/css/output.css">
+        <link rel="stylesheet" href="/public/assets/css/output.css">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
         <style>
             .form-transition {
@@ -78,10 +78,18 @@
                                 <div class="p-5">
                                     <!-- Quick Info Pills -->
                                     <div class="flex flex-wrap gap-2 mb-3">
+                                        <?php
+                                        $shiftMap = [
+                                            1 => 'Morning',
+                                            2 => 'Evening',
+                                            3 => 'Graveyard'
+                                        ];
+                                        $shiftText = $shiftMap[$job['shift']] ?? 'Unknown';
+                                        ?>
                                         <span
                                             class="inline-flex items-center px-2 py-1 rounded-md text-xs bg-gray-50 text-gray-600 border border-gray-100">
                                             <i class="fas fa-clock mr-1 text-primary"></i>
-                                            <?= htmlspecialchars($job['shift']) ?>
+                                            <?= htmlspecialchars($shiftText) ?>
                                         </span>
                                         <span
                                             class="inline-flex items-center px-2 py-1 rounded-md text-xs bg-gray-50 text-gray-600 border border-gray-100">
@@ -155,6 +163,7 @@
                     <form method="POST" action="/submitApplication" class="space-y-4" id="applicationForm">
                         <input type="hidden" name="position" id="selected-position" value="">
                         <input type="hidden" name="ratePerHour" id="rate" value="">
+                        <input type="hidden" name="shift" id="shift" value="<?= htmlspecialchars($job['shift']) ?>">
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <!-- Full Name -->
@@ -324,6 +333,6 @@
             }
         </script>
     </body>
-    <script src="/assets/js/resumeUpload.js" type="module"></script>
+    <script src="/public/assets/js/resumeUpload.js" type="module"></script>
 
 </html>

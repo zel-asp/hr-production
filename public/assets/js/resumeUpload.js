@@ -1,4 +1,4 @@
-import supabaseClient from '/assets/js/supabase.js';
+import supabaseClient from '/public/assets/js/supabase.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('applicationForm');

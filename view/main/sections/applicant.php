@@ -52,6 +52,7 @@
                             $experience = htmlspecialchars($applicant['experience']);
                             $education = htmlspecialchars($applicant['education']);
                             $skills = htmlspecialchars($applicant['skills']);
+                            $shift = htmlspecialchars($applicant['shift']);
                             $resume = htmlspecialchars($applicant['resume_path']);
                             $coverNote = htmlspecialchars($applicant['cover_note']);
                             $created = date('Y-m-d', strtotime($applicant['created_at']));
@@ -272,8 +273,9 @@
                                         <!-- Update Status Button -->
                                         <button type="button"
                                             class="flex items-center justify-center gap-1.5 px-3 py-2 bg-white text-yellow-600 hover:bg-yellow-50 rounded-md text-sm font-medium transition border border-gray-200 whitespace-nowrap update-status-btn"
-                                            data-id="<?= $id ?>" data-csrf="<?= $_SESSION['csrf_token'] ?>">
-                                            <i class="fas fa-sync-alt text-xs"></i>
+                                            data-id="<?= $id ?>" data-csrf="<?= $_SESSION['csrf_token'] ?>"
+                                            data-rate="<?= htmlspecialchars($applicant['rate_per_hour'] ?? '') ?>">
+                                            <i class=" fas fa-sync-alt text-xs"></i>
                                             <span>Update</span>
                                         </button>
 

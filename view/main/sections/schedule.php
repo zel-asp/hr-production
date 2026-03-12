@@ -6,13 +6,44 @@
             <p class="text-gray-500 text-sm mt-1">Upload attendance records and manage shift requests</p>
         </div>
         <div class="flex items-center gap-2">
-            <!-- Download Schedule Template Button -->
-            <a href="/assets/template/Template.xlsx"
-                class="px-4 py-2 text-sm font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors duration-200 flex items-center gap-2">
-                <i class="fas fa-file-excel"></i>
-                Download Schedule Template
-            </a>
+            <!-- Download Schedule Template Dropdown -->
+            <div class="relative" x-data="{ open: false }">
+                <button @click="open = !open"
+                    class="px-4 py-2 text-sm font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors duration-200 flex items-center gap-2">
+                    <i class="fas fa-file-excel"></i>
+                    Download Template
+                    <i class="fas fa-chevron-down text-xs" :class="{ 'rotate-180': open }"></i>
+                </button>
 
+                <!-- Dropdown Menu -->
+                <div x-show="open" @click.away="open = false"
+                    class="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+
+                    <!-- Excel Format - Primary (for upload) -->
+                    <a href="/download-schedule?format=excel"
+                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150">
+                        <div class="flex items-center">
+                            <i class="fas fa-file-excel text-green-600 w-6 text-lg"></i>
+                            <div>
+                                <span class="font-medium">Excel Format (.xlsx)</span>
+                                <p class="text-xs text-gray-400">Compatible with upload form</p>
+                            </div>
+                        </div>
+                    </a>
+
+                    <!-- Static Template -->
+                    <a href="/assets/template/Template.xlsx"
+                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150">
+                        <div class="flex items-center">
+                            <i class="fas fa-file-excel text-gray-600 w-6 text-lg"></i>
+                            <div>
+                                <span class="font-medium">Static Template</span>
+                                <p class="text-xs text-gray-400">Generic template without employees</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -489,6 +520,7 @@
     </div>
 </div>
 
+<script src="//unpkg.com/alpinejs" defer></script>
 <script>
     // File upload functions
     const dropZone = document.getElementById('dropZone');

@@ -18,8 +18,10 @@ try {
     $id = (int) ($input['id'] ?? 0);
     $status = ucfirst(strtolower(trim($input['status'] ?? '')));
     $startDate = $input['start_date'] ?? null;
-    $interviewDate = $input['interview_date'] ?? null; // Add this line
+    $interviewDate = $input['interview_date'] ?? null;
     $csrf = $input['csrf_token'] ?? '';
+    $hourlyRate = $input['hourly_rate'] ?? '';
+
 
     if (!hash_equals($_SESSION['csrf_token'] ?? '', $csrf)) {
         throw new Exception("Invalid CSRF token");
@@ -69,9 +71,9 @@ try {
             $employeeNumber = 'EMP-' . str_pad($id, 3, '0', STR_PAD_LEFT);
             $db->query("
                 INSERT INTO employees 
-                    (applicant_id, employee_number, full_name, email, phone, position, department, start_date, hired_date, status, age, gender, resume) 
+                    (applicant_id, employee_number, full_name, email, phone, position, department, start_date, hired_date, status, age, gender, resume, shift_id, hourly_rate) 
                 VALUES 
-                    (:applicant_id, :employee_number, :full_name, :email, :phone, :position, :department, :start_date, :hired_date, 'Probationary', :age, :gender, :resume)
+                    (:applicant_id, :employee_number, :full_name, :email, :phone, :position, :department, :start_date, :hired_date, 'Probationary', :age, :gender, :resume, :shift, :hourly_rate)
             ", [
                 'applicant_id' => $id,
                 'employee_number' => $employeeNumber,
@@ -84,7 +86,9 @@ try {
                 'hired_date' => $applicant['hired_date'] ?? date('Y-m-d'),
                 'age' => $applicant['age'],
                 'gender' => $applicant['gender'],
-                'resume' => $applicant['resume_path']
+                'resume' => $applicant['resume_path'],
+                'shift' => $applicant['shift'],
+                'hourly_rate' => $applicant['rate_per_hour']
             ]);
         }
 

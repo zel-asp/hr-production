@@ -124,7 +124,7 @@ try {
                 claims, 
                 status, 
                 generated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Processed', NOW())
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Processing', NOW())
         ", [
             $employeeId,
             $periodStart,
