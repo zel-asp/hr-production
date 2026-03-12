@@ -20,7 +20,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $task_description = trim($_POST['task_description']);
         $due_date = $_POST['due_date'];
         $priority = ucfirst(strtolower(trim($_POST['priority'])));
-        $assigned_staff = trim($_POST['assigned_staff']);
 
         // Validation
         if (!$assigned_to)
