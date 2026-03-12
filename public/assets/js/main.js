@@ -543,3 +543,311 @@ function applyHcmFilter() {
 
     window.location.href = url.toString();
 }
+
+// ============================================
+// COMPLETE LOADING EFFECT HANDLER
+// ============================================
+class FormLoadingHandler {
+    constructor(options = {}) {
+        this.options = {
+            loadingText: 'Processing...',
+            loadingClass: 'btn-loading',
+            spinnerIcon: 'fa-spinner fa-spin',
+            buttonSelector: 'button[type="submit"], .update-status-btn, .js-loading-btn',
+            ...options
+        };
+
+        this.init();
+    }
+
+    init() {
+        // Handle all form submissions (both AJAX and regular)
+        document.querySelectorAll('form').forEach(form => {
+            this.setupFormLoading(form);
+        });
+
+        // Handle status update buttons (your existing buttons)
+        document.querySelectorAll('.update-status-btn').forEach(btn => {
+            this.setupButtonLoading(btn);
+        });
+
+        // Handle any buttons with js-loading-btn class
+        document.querySelectorAll('.js-loading-btn').forEach(btn => {
+            this.setupButtonLoading(btn);
+        });
+    }
+
+    setupFormLoading(form) {
+        form.addEventListener('submit', (e) => {
+            const submitButton = form.querySelector('button[type="submit"]');
+
+            // Check if this is an AJAX form (has data-ajax attribute)
+            const isAjax = form.hasAttribute('data-ajax') ||
+                form.getAttribute('data-ajax') === 'true';
+
+            if (submitButton && !submitButton.disabled) {
+                this.setLoading(submitButton, true);
+            }
+
+            // Prevent double submission
+            if (form.dataset.submitting === 'true') {
+                e.preventDefault();
+                return;
+            }
+
+            form.dataset.submitting = 'true';
+
+            // For non-AJAX forms (regular POST that reloads page)
+            // We don't need to worry about clearing loading state
+            // because the page will reload
+            if (!isAjax) {
+                // The form will submit and page will reload
+                // Loading state will persist until reload
+                return;
+            }
+
+            // For AJAX forms, we need to handle the response
+            if (isAjax) {
+                e.preventDefault(); // Prevent default submission
+                this.handleAjaxSubmit(form, submitButton);
+            }
+        });
+    }
+
+    handleAjaxSubmit(form, submitButton) {
+        const formData = new FormData(form);
+
+        fetch(form.action, {
+            method: form.method || 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Handle success
+                    if (form.dataset.successRedirect) {
+                        window.location.href = form.dataset.successRedirect;
+                    } else {
+                        // Show success message and reset form
+                        this.showNotification('Success!', 'success');
+                        form.reset();
+                    }
+                } else {
+                    // Handle error
+                    this.showNotification(data.message || 'An error occurred', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                this.showNotification('An error occurred', 'error');
+            })
+            .finally(() => {
+                // Clear loading state
+                if (submitButton) {
+                    this.setLoading(submitButton, false);
+                }
+                form.dataset.submitting = 'false';
+            });
+    }
+
+    setupButtonLoading(button) {
+        button.addEventListener('click', (e) => {
+            // Check if this button is for AJAX or regular action
+            const isAjax = button.hasAttribute('data-ajax') ||
+                button.classList.contains('update-status-btn'); // Your status buttons are AJAX
+
+            if (button.disabled || button.classList.contains(this.options.loadingClass)) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+
+            // Don't show loading for buttons that trigger page reload
+            // unless they're specifically marked for AJAX
+            if (button.closest('form') && !isAjax) {
+                // Let the form handler deal with it
+                return;
+            }
+
+            // For AJAX buttons, show loading
+            if (isAjax) {
+                this.setLoading(button, true);
+
+                // If it's an update-status-btn, it already has its own fetch
+                // We need to track when it completes
+                if (button.classList.contains('update-status-btn')) {
+                    this.trackAsyncOperation(button);
+                }
+            }
+        });
+    }
+
+    trackAsyncOperation(button) {
+        // Watch for when the button might be re-enabled
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'disabled' || mutation.attributeName === 'class') {
+                    if (!button.disabled && !button.classList.contains(this.options.loadingClass)) {
+                        // Button was re-enabled naturally, clear loading
+                        this.setLoading(button, false);
+                        observer.disconnect();
+                    }
+                }
+            });
+        });
+
+        observer.observe(button, { attributes: true });
+
+        // Safety timeout
+        setTimeout(() => {
+            if (button.classList.contains(this.options.loadingClass)) {
+                this.setLoading(button, false);
+            }
+            observer.disconnect();
+        }, 10000);
+    }
+
+    setLoading(element, isLoading) {
+        if (isLoading) {
+            // Store original content if not already stored
+            if (!element.dataset.originalHtml) {
+                element.dataset.originalHtml = element.innerHTML;
+            }
+
+            element.classList.add(this.options.loadingClass);
+            element.disabled = true;
+
+            // Handle different button types
+            if (element.classList.contains('update-status-btn')) {
+                element.innerHTML = `<i class="fas ${this.options.spinnerIcon} mr-2"></i>Updating...`;
+            } else {
+                // Check if button already has an icon
+                const icon = element.querySelector('i.fa, i.fas, i.far');
+                if (icon) {
+                    icon.dataset.originalClass = icon.className;
+                    icon.className = `fas ${this.options.spinnerIcon}`;
+                } else {
+                    element.innerHTML = `<i class="fas ${this.options.spinnerIcon} mr-2"></i>${this.options.loadingText}`;
+                }
+            }
+        } else {
+            element.classList.remove(this.options.loadingClass);
+            element.disabled = false;
+
+            // Restore original content
+            if (element.dataset.originalHtml) {
+                element.innerHTML = element.dataset.originalHtml;
+                delete element.dataset.originalHtml;
+            }
+
+            // Restore original icon if it existed
+            const icon = element.querySelector('i.fa, i.fas, i.far');
+            if (icon && icon.dataset.originalClass) {
+                icon.className = icon.dataset.originalClass;
+                delete icon.dataset.originalClass;
+            }
+        }
+    }
+
+    showNotification(message, type = 'success') {
+        // Use your existing notification function
+        if (typeof showNotification === 'function') {
+            showNotification(message, type);
+        } else {
+            // Fallback notification
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 px-4 py-2 rounded-lg text-white ${type === 'success' ? 'bg-green-500' : 'bg-red-500'} z-50 animate-slideIn`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 3000);
+        }
+    }
+
+    // Static method to manually set loading state
+    static setButtonLoading(button, isLoading) {
+        const handler = new FormLoadingHandler();
+        handler.setLoading(button, isLoading);
+    }
+}
+
+// Add CSS for loading effects
+const loadingStyles = document.createElement('style');
+loadingStyles.textContent = `
+    /* Loading button styles */
+    button.btn-loading,
+    .update-status-btn.btn-loading,
+    .js-loading-btn.btn-loading {
+        position: relative;
+        cursor: wait !important;
+        opacity: 0.7;
+        pointer-events: none;
+        transition: all 0.2s ease;
+    }
+    
+    /* Pulse animation */
+    @keyframes btnPulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.6; }
+        100% { opacity: 1; }
+    }
+    
+    button.btn-loading,
+    .update-status-btn.btn-loading {
+        animation: btnPulse 1.5s ease-in-out infinite;
+    }
+    
+    /* Disable form during submission */
+    form[data-submitting="true"] {
+        opacity: 0.8;
+        pointer-events: none;
+    }
+    
+    form[data-submitting="true"] button[type="submit"] {
+        cursor: wait !important;
+    }
+    
+    /* Spinner rotation */
+    .fa-spin {
+        animation: fa-spin 2s infinite linear;
+    }
+    
+    @keyframes fa-spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    /* Prevent double clicks */
+    .btn-loading {
+        user-select: none;
+    }
+`;
+
+document.head.appendChild(loadingStyles);
+
+// Initialize loading handler when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    new FormLoadingHandler();
+});
+
+// Add helper functions for manual loading control
+window.showButtonLoading = function (element) {
+    if (element) {
+        FormLoadingHandler.setButtonLoading(element, true);
+    }
+};
+
+window.hideButtonLoading = function (element) {
+    if (element) {
+        FormLoadingHandler.setButtonLoading(element, false);
+    }
+};
+
+// Mark your status update buttons as AJAX
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.update-status-btn').forEach(btn => {
+        btn.setAttribute('data-ajax', 'true');
+    });
+});
