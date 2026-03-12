@@ -96,13 +96,13 @@
                             Edit
                         </button>
 
-                        <!-- Replace your existing delete form with this -->
-                        <form method="POST" action="/delete-job" class="flex-1" id="delete-form-<?= $job['id'] ?>">
+                        <form method="POST" action="/delete-job" class="flex-1"
+                            onsubmit="return confirm('Are you sure you want to delete this job posting? This action cannot be undone.');">
                             <input type="hidden" value="DELETE" name="__method">
                             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                             <input type="hidden" name="job_id" value="<?= $job['id'] ?>">
-                            <button type="button"
-                                onclick="openDeleteModal(document.getElementById('delete-form-<?= $job['id'] ?>'))"
+                            <!-- Replace just the delete button part in your job card -->
+                            <button type="button" onclick="openSimpleDeleteModal(<?= $job['id'] ?>)"
                                 class="w-full px-3 py-3 text-xs font-medium text-gray-600 hover:text-rose-600 hover:bg-rose-50/50 transition-colors duration-200 border-l border-gray-100">
                                 <i class="fas fa-trash mr-1.5 text-gray-400 group-hover:text-rose-400"></i>
                                 Delete
@@ -528,31 +528,56 @@
     </div>
 </div>
 
-<div id="deleteConfirmModal" class="delete-modal">
-    <div class="delete-modal-content">
-        <div class="delete-modal-header">
-            <h3 class="delete-modal-title">Confirm Delete</h3>
-            <button onclick="closeDeleteModal()" class="delete-modal-close">
-                <i class="fas fa-times"></i>
-            </button>
+<!-- ULTRA SIMPLE DELETE MODAL -->
+<div id="simpleDeleteModal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 99999; align-items: center; justify-content: center;">
+    <div style="background: white; width: 350px; padding: 24px; border-radius: 12px; text-align: center;">
+        <div style="font-size: 48px; color: #dc2626; margin-bottom: 16px;">
+            <i class="fas fa-exclamation-circle"></i>
         </div>
-        <div class="delete-modal-body">
-            <div class="delete-modal-icon">
-                <i class="fas fa-exclamation-triangle"></i>
+        <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 8px;">Delete Job Posting</h3>
+        <p style="color: #6b7280; margin-bottom: 20px;">Are you sure? This cannot be undone.</p>
+
+        <form id="deleteJobForm" method="POST" action="/delete-job" style="display: inline;">
+            <input type="hidden" value="DELETE" name="__method">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+            <input type="hidden" name="job_id" id="deleteJobId" value="">
+
+            <div style="display: flex; gap: 12px; justify-content: center;">
+                <button type="button" onclick="closeSimpleModal()"
+                    style="padding: 10px 20px; border: 1px solid #d1d5db; background: white; border-radius: 6px; cursor: pointer;">
+                    Cancel
+                </button>
+                <button type="submit"
+                    style="padding: 10px 20px; background: #dc2626; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                    <i class="fas fa-trash mr-1"></i> Delete
+                </button>
             </div>
-            <p class="delete-modal-message">Are you sure you want to delete this job posting?</p>
-            <p class="delete-modal-warning">This action cannot be undone.</p>
-        </div>
-        <div class="delete-modal-footer">
-            <button onclick="closeDeleteModal()" class="delete-modal-cancel">
-                Cancel
-            </button>
-            <button id="confirmDeleteBtn" class="delete-modal-confirm">
-                <i class="fas fa-trash mr-1"></i>Delete
-            </button>
-        </div>
+        </form>
     </div>
 </div>
+
+<script>
+    // Simple modal functions
+    function openSimpleDeleteModal(jobId) {
+        document.getElementById('deleteJobId').value = jobId;
+        document.getElementById('simpleDeleteModal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeSimpleModal() {
+        document.getElementById('simpleDeleteModal').style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    // Close modal when clicking outside
+    document.addEventListener('click', function (event) {
+        const modal = document.getElementById('simpleDeleteModal');
+        if (event.target === modal) {
+            closeSimpleModal();
+        }
+    });
+</script>
 
 <script>
     // Delete modal functions
