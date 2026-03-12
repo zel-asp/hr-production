@@ -157,8 +157,6 @@
                                 ?>
                                 <tr class="border-b border-gray-50 hover:bg-gray-50/50 transition-colors duration-150">
                                     <td class="py-3">
-                                        <p class="text-sm font-medium text-gray-800"><?= htmlspecialchars($training['title']) ?>
-                                        </p>
                                         <?php if ($training['competency_name']): ?>
                                             <p class="text-xs text-gray-400 mt-0.5">Competency:
                                                 <?= htmlspecialchars($training['competency_name']) ?>

@@ -6,7 +6,7 @@ require base_path("core/middleware/adminAuth.php");
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     $_SESSION['error'][] = 'Method not allowed';
-    header('Location: /main?tab=hcm');
+    header('Location: /main?tab=hcm#employeeList');
     exit();
 }
 
@@ -17,7 +17,7 @@ if (
 ) {
 
     $_SESSION['error'][] = 'Invalid security token';
-    header('Location: /main?tab=hcm');
+    header('Location: /main?tab=hcm#employeeList');
     exit();
 }
 
@@ -39,7 +39,7 @@ $role = $_POST['role'] ?? 'employee';
 
 if (!$employeeId) {
     $_SESSION['error'][] = 'Employee ID is required';
-    header('Location: /main?tab=hcm');
+    header('Location: /main?tab=hcm#employeeList');
     exit();
 }
 
@@ -86,7 +86,7 @@ try {
     $db->commit();
 
     $_SESSION['success'][] = 'Updated successfully';
-    header('Location: /main?tab=hcm');
+    header('Location: /main?tab=hcm#employeeList');
     exit();
 
 } catch (Exception $e) {
@@ -97,6 +97,6 @@ try {
     $_SESSION['error'][] = 'Something went wrong';
     error_log("Admin note error: " . $e->getMessage());
 
-    header('Location: /main?tab=hcm');
+    header('Location: /main?tab=hcm#employeeList');
     exit();
 }
