@@ -161,7 +161,7 @@
                                     <input type="number" name="hourly_rate" step="0.01"
                                         value="<?= htmlspecialchars($employee['hourly_rate'] ?? '0.00') ?>"
                                         class="w-full pl-8 pr-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        read>
+                                        readonly>
                                 </div>
                             </div>
 
@@ -216,12 +216,31 @@
                         <div class="space-y-3">
                             <?php
                             // Fetch employee history
-                            $timeline = [
-                                ['date' => $employee['hired_date'], 'event' => 'Hired', 'description' => 'Employee joined the company', 'icon' => 'fa-user-plus', 'color' => 'green'],
-                                ['date' => $employee['start_date'], 'event' => 'Started', 'description' => 'First day of work', 'icon' => 'fa-calendar-check', 'color' => 'blue'],
-                                // Add more events from a history table if you have one
-                            ];
+                            $timeline = [];
 
+                            // Only add events if dates exist
+                            if (!empty($employee['hired_date'])) {
+                                $timeline[] = [
+                                    'date' => $employee['hired_date'],
+                                    'event' => 'Hired',
+                                    'description' => 'Employee joined the company',
+                                    'icon' => 'fa-user-plus',
+                                    'color' => 'green'
+                                ];
+                            }
+
+                            if (!empty($employee['start_date'])) {
+                                $timeline[] = [
+                                    'date' => $employee['start_date'],
+                                    'event' => 'Started',
+                                    'description' => 'First day of work',
+                                    'icon' => 'fa-calendar-check',
+                                    'color' => 'blue'
+                                ];
+                            }
+
+                            // Add more events from a history table if you have one
+                        
                             foreach ($timeline as $event):
                                 ?>
                                 <div class="flex gap-3">
@@ -235,13 +254,23 @@
                                     <div class="flex-1 pb-3 border-b border-gray-100">
                                         <div class="flex justify-between">
                                             <p class="text-sm font-medium text-gray-800"><?= $event['event'] ?></p>
-                                            <p class="text-xs text-gray-400"><?= date('M j, Y', strtotime($event['date'])) ?>
+                                            <p class="text-xs text-gray-400">
+                                                <?php
+                                                $eventDate = $event['date'] ?? null;
+                                                echo $eventDate ? date('M j, Y', strtotime($eventDate)) : 'Date not set';
+                                                ?>
                                             </p>
                                         </div>
                                         <p class="text-xs text-gray-500"><?= $event['description'] ?></p>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
+
+                            <?php if (empty($timeline)): ?>
+                                <div class="text-center py-4 text-gray-400 text-sm">
+                                    <i class="fa-solid fa-clock mr-1"></i> No timeline events available
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
 
@@ -361,6 +390,7 @@
                             </div>
                         </div>
                     </div>
+
                     <!-- Applicant Source Information (if available) -->
                     <?php if (!empty($employee['applicant_experience']) || !empty($employee['applicant_education'])): ?>
                         <div class="mb-6">
@@ -443,8 +473,11 @@
                                 </div>
                                 <div>
                                     <label class="block text-xs text-gray-500 mb-1">Last Login</label>
-                                    <input type="text" value="<?= htmlspecialchars($employee['last_login'] ?? 'Never') ?>"
-                                        class="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-lg text-sm" readonly>
+                                    <input type="text" value="<?php
+                                    $lastLogin = $employee['last_login'] ?? null;
+                                    echo $lastLogin ? date('M j, Y H:i', strtotime($lastLogin)) : 'Never';
+                                    ?>" class="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-lg text-sm"
+                                        readonly>
                                 </div>
                                 <div>
                                     <label class="block text-xs text-gray-500 mb-1">Session Token</label>
@@ -514,12 +547,18 @@
                         </h4>
                         <div class="grid grid-cols-3 gap-2 text-xs text-gray-500">
                             <div>Created:
-                                <?= htmlspecialchars(date('M j, Y H:i', strtotime($employee['created_at'] ?? ''))) ?>
+                                <?php
+                                $createdAt = $employee['created_at'] ?? null;
+                                echo $createdAt ? date('M j, Y H:i', strtotime($createdAt)) : 'Not recorded';
+                                ?>
                             </div>
                             <div>Last Updated:
-                                <?= htmlspecialchars(date('M j, Y H:i', strtotime($employee['updated_at'] ?? ''))) ?>
+                                <?php
+                                $updatedAt = $employee['updated_at'] ?? null;
+                                echo $updatedAt ? date('M j, Y H:i', strtotime($updatedAt)) : 'Never';
+                                ?>
                             </div>
-                            <div>Record ID: <?= htmlspecialchars($employee['id'] ?? '') ?></div>
+                            <div>Record ID: <?= htmlspecialchars($employee['id'] ?? 'N/A') ?></div>
                         </div>
                     </div>
 
