@@ -26,9 +26,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $existing = $db->query(
                 "SELECT COUNT(*) AS count FROM job_postings WHERE position = ? AND department = ? AND location = ? AND shift = ? AND salary = ?",
                 [$position, $department, $location, $shift, $salary]
-            )->find();
+            )->fetch_one();
 
-            if ($existing) {
+            if ($existing > 0) {
                 $error[] = 'This job posting already exists.';
                 $_SESSION['error'] = $error;
                 header('Location: /main?tab=recruitment&modal=newJobModal');
