@@ -5089,7 +5089,7 @@ view_path('main', 'index', [
     // Tasks
     'tasks' => $tasks,
     'applicantTasks' => $applicantTasks,
-    'staffMembers' => $staffMembers,
+
 
     // Onboarding
     'onboardingTasks' => $onboardingTasks,
