@@ -96,13 +96,13 @@
                             Edit
                         </button>
 
-                        <!-- Replace just this delete form in your job cards -->
-                        <form method="POST" action="/delete-job" class="flex-1"
-                            onsubmit="return handleDeleteSubmit(this, event);">
+                        <!-- Replace your existing delete form with this -->
+                        <form method="POST" action="/delete-job" class="flex-1" id="delete-form-<?= $job['id'] ?>">
                             <input type="hidden" value="DELETE" name="__method">
                             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                             <input type="hidden" name="job_id" value="<?= $job['id'] ?>">
-                            <button type="submit" name="delete-jobBtn"
+                            <button type="button"
+                                onclick="openDeleteModal(document.getElementById('delete-form-<?= $job['id'] ?>'))"
                                 class="w-full px-3 py-3 text-xs font-medium text-gray-600 hover:text-rose-600 hover:bg-rose-50/50 transition-colors duration-200 border-l border-gray-100">
                                 <i class="fas fa-trash mr-1.5 text-gray-400 group-hover:text-rose-400"></i>
                                 Delete
@@ -528,55 +528,74 @@
     </div>
 </div>
 
+<div id="deleteConfirmModal" class="delete-modal">
+    <div class="delete-modal-content">
+        <div class="delete-modal-header">
+            <h3 class="delete-modal-title">Confirm Delete</h3>
+            <button onclick="closeDeleteModal()" class="delete-modal-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="delete-modal-body">
+            <div class="delete-modal-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <p class="delete-modal-message">Are you sure you want to delete this job posting?</p>
+            <p class="delete-modal-warning">This action cannot be undone.</p>
+        </div>
+        <div class="delete-modal-footer">
+            <button onclick="closeDeleteModal()" class="delete-modal-cancel">
+                Cancel
+            </button>
+            <button id="confirmDeleteBtn" class="delete-modal-confirm">
+                <i class="fas fa-trash mr-1"></i>Delete
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
-    // Add this function to handle delete form submission
-    function handleDeleteSubmit(form, event) {
-        event.preventDefault(); // Stop the form from submitting immediately
+    // Delete modal functions
+    let currentDeleteForm = null;
 
-        // Show confirmation dialog
-        if (!confirm('Are you sure you want to delete this job posting? This action cannot be undone.')) {
-            return false;
-        }
-
-        // Get the submit button
-        const submitButton = form.querySelector('button[type="submit"]');
-
-        // Show loading state on the button
-        if (submitButton) {
-            const originalContent = submitButton.innerHTML;
-            submitButton.dataset.originalHtml = originalContent;
-            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i>Deleting...';
-            submitButton.disabled = true;
-            submitButton.classList.add('opacity-50', 'cursor-wait');
-        }
-
-        // Now submit the form
-        form.submit();
-
-        return false;
+    function openDeleteModal(form) {
+        currentDeleteForm = form;
+        document.getElementById('deleteConfirmModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
     }
 
-    function exportRequisitions() {
-        const button = event.target.closest('button');
-        if (button) {
-            const originalContent = button.innerHTML;
-            button.dataset.originalHtml = originalContent;
-            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Exporting...';
-            button.disabled = true;
-            button.classList.add('opacity-50', 'cursor-wait');
-        }
+    function closeDeleteModal() {
+        document.getElementById('deleteConfirmModal').classList.remove('active');
+        document.body.style.overflow = '';
+        currentDeleteForm = null;
+    }
 
+    // Handle confirm delete
+    document.addEventListener('DOMContentLoaded', function () {
+        const confirmBtn = document.getElementById('confirmDeleteBtn');
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', function () {
+                if (currentDeleteForm) {
+                    // Show loading on button
+                    const originalText = confirmBtn.innerHTML;
+                    confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Deleting...';
+                    confirmBtn.disabled = true;
+
+                    // Submit the form
+                    currentDeleteForm.submit();
+                }
+            });
+        }
+    });
+
+    function exportRequisitions() {
         const url = new URL(window.location.href);
         url.pathname = '/export-requisitions';
         url.searchParams.set('dept', '<?= $requisitionDeptFilter ?>');
         url.searchParams.set('priority', '<?= $requisitionPriorityFilter ?>');
         url.searchParams.set('status', '<?= $requisitionStatusFilter ?>');
         url.searchParams.set('search', '<?= $requisitionSearch ?>');
-
-        // Small delay to show loading state
-        setTimeout(() => {
-            window.location.href = url.toString();
-        }, 100);
+        window.location.href = url.toString();
     }
 
     document.addEventListener("DOMContentLoaded", function () {

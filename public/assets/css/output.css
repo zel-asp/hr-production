@@ -4408,12 +4408,144 @@ body {
   background: var(--color-primary);
   border-radius: 2px;
 }
-.opacity-50 {
-    opacity: 0.5;
+
+/* Delete Modal Styles - Very Simple */
+.delete-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
 }
 
-.cursor-wait {
-    cursor: wait;
+.delete-modal.active {
+    display: flex;
+}
+
+.delete-modal-content {
+    background: white;
+    width: 90%;
+    max-width: 400px;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: fadeIn 0.2s ease;
+}
+
+.delete-modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.delete-modal-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+}
+
+.delete-modal-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 4px;
+}
+
+.delete-modal-close:hover {
+    color: #6b7280;
+}
+
+.delete-modal-body {
+    padding: 24px 20px;
+    text-align: center;
+}
+
+.delete-modal-icon {
+    width: 64px;
+    height: 64px;
+    background: #fee2e2;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+}
+
+.delete-modal-icon i {
+    font-size: 32px;
+    color: #dc2626;
+}
+
+.delete-modal-message {
+    font-size: 16px;
+    font-weight: 500;
+    color: #111827;
+    margin-bottom: 8px;
+}
+
+.delete-modal-warning {
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.delete-modal-footer {
+    padding: 16px 20px;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.delete-modal-cancel {
+    padding: 8px 16px;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.delete-modal-cancel:hover {
+    background: #f3f4f6;
+}
+
+.delete-modal-confirm {
+    padding: 8px 16px;
+    background: #dc2626;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.delete-modal-confirm:hover {
+    background: #b91c1c;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 .glow {
