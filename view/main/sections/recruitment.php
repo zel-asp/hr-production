@@ -97,7 +97,7 @@
                         </button>
 
                         <form method="POST" action="/delete-job" class="flex-1"
-                            onsubmit="return confirm('Are you sure you want to delete this job posting? This action cannot be undone.');">
+                            onclick="return confirm('Are you sure you want to delete this job posting? This action cannot be undone.');">
                             <input type="hidden" value="DELETE" name="__method">
                             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                             <input type="hidden" name="job_id" value="<?= $job['id'] ?>">
