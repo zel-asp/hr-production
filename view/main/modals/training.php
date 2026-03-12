@@ -12,17 +12,6 @@
 
             <!-- Hidden field to track if we should notify -->
             <input type="hidden" name="notify" id="notifyFlag" value="false">
-
-            <div class="bg-yellow-50 p-4 rounded-lg mb-2">
-                <label class="block text-sm font-medium mb-2">Based on Competency Gap</label>
-                <div class="text-sm">
-                    <p><span class="font-medium">Employee:</span> Grace Lee - Customer Service (Level 2)</p>
-                    <p><span class="font-medium">Required Level:</span> 3 - Intermediate</p>
-                    <p><span class="font-medium">Recommended Intervention:</span> Customer Service Excellence Training
-                    </p>
-                </div>
-            </div>
-
             <!-- Training Type -->
             <div>
                 <label class="block text-sm font-medium mb-1">Training Type</label>

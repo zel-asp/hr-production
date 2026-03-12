@@ -96,9 +96,8 @@
                             Edit
                         </button>
 
-                        <!-- Fix this form in your job cards - REPLACE the existing delete form with this -->
                         <form method="POST" action="/delete-job" class="flex-1"
-                            onsubmit="return handleDeleteSubmit(this, event);">
+                            onsubmit="return confirm('Are you sure you want to delete this job posting? This action cannot be undone.');">
                             <input type="hidden" value="DELETE" name="__method">
                             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                             <input type="hidden" name="job_id" value="<?= $job['id'] ?>">
@@ -529,54 +528,14 @@
 </div>
 
 <script>
-    function handleDeleteSubmit(form, event) {
-        event.preventDefault(); // Prevent default submission first
-
-        // Show confirmation dialog
-        if (!confirm('Are you sure you want to delete this job posting? This action cannot be undone.')) {
-            return false;
-        }
-
-        // Get the submit button
-        const submitButton = form.querySelector('button[type="submit"]');
-
-        // Show loading state manually
-        if (submitButton) {
-            const originalContent = submitButton.innerHTML;
-            submitButton.dataset.originalHtml = originalContent;
-            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i>Deleting...';
-            submitButton.disabled = true;
-            submitButton.classList.add('opacity-70', 'cursor-wait');
-        }
-
-        // Submit the form
-        form.submit();
-
-        return false;
-    }
-
-    // Override for export function to show loading
-    window.exportRequisitions = function () {
-        const button = event.target.closest('button');
-        if (button) {
-            const originalContent = button.innerHTML;
-            button.dataset.originalHtml = originalContent;
-            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Exporting...';
-            button.disabled = true;
-            button.classList.add('opacity-70', 'cursor-wait');
-        }
-
+    function exportRequisitions() {
         const url = new URL(window.location.href);
         url.pathname = '/export-requisitions';
         url.searchParams.set('dept', '<?= $requisitionDeptFilter ?>');
         url.searchParams.set('priority', '<?= $requisitionPriorityFilter ?>');
         url.searchParams.set('status', '<?= $requisitionStatusFilter ?>');
         url.searchParams.set('search', '<?= $requisitionSearch ?>');
-
-        // Redirect after a tiny delay to show loading
-        setTimeout(() => {
-            window.location.href = url.toString();
-        }, 100);
+        window.location.href = url.toString();
     }
 
     document.addEventListener("DOMContentLoaded", function () {
