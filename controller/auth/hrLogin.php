@@ -79,6 +79,7 @@ $db->query(
     [$hashedToken, $account['account_id']]
 );
 
+
 // Set admin session data
 $_SESSION['admin'] = [
     'account_id' => $account['account_id'],

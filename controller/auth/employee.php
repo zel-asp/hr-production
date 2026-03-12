@@ -86,4 +86,5 @@ require base_path('core/middleware/employeeAuth.php');
 
 $_SESSION['success'][] = "login successful!";
 header('Location: /');
+
 exit();
