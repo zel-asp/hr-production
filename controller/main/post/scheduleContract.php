@@ -22,21 +22,17 @@ if (!isset($_POST['csrf_token']) || !isset($_SESSION['csrf_token']) || $_POST['c
 $config = require base_path('config/config.php');
 $db = new Database($config['database']);
 
-// Get form data - FIX: Changed variable names to match form
+// Get form data
 $applicantId = isset($_POST['applicant_id']) ? (int) $_POST['applicant_id'] : 0;
-// REMOVED: employee_name and position are no longer in the form as hidden fields
-// They are now displayed but not submitted
 $contractDate = $_POST['contract_date'] ?? '';
 $contractTime = $_POST['contract_time'] ?? null;
 $contractLocation = $_POST['contract_location'] ?? 'HR Office';
-$name = $_POST['employee_name'];
-$position = $_POST['position'];
+$name = $_POST['employee_name'] ?? '';
+$position = $_POST['position'] ?? '';
 $contractNotes = $_POST['contract_notes'] ?? '';
 $ratePerHour = isset($_POST['hourly_rate']) ? floatval($_POST['hourly_rate']) : 0;
 
-// REMOVED: dd($applicantId); - This was causing debug dump and exit
-
-// Validate required fields - FIX: Removed validation for fields no longer submitted
+// Validate required fields
 if (!$applicantId || empty($contractDate) || empty($contractLocation)) {
     $_SESSION['error'][] = 'Missing required fields';
     header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '/'));
@@ -53,7 +49,7 @@ if (strtotime($contractDate) < strtotime(date('Y-m-d'))) {
 try {
     $db->beginTransaction();
 
-    // Get applicant details for reference (optional)
+    // Get applicant details for reference
     $applicant = $db->query("
         SELECT full_name, position, email 
         FROM applicants 
@@ -64,7 +60,7 @@ try {
         throw new Exception('Applicant not found');
     }
 
-    // Update hourly rate if provided and table exists
+    // Update hourly rate if provided
     if ($ratePerHour > 0) {
         $db->query("
             UPDATE applicants 
@@ -78,19 +74,20 @@ try {
         SELECT id FROM schedule_contract 
         WHERE applicant_id = ?
     ", [$applicantId])->fetch_one();
+
     if ($existingContract) {
         // Update existing contract
         $db->query("
-    UPDATE schedule_contract 
-    SET contract_date = ?,
-        contract_time = ?,
-        contract_location = ?,
-        contract_notes = ?,
-        hourly_rate = ?,
-        employee_name = ?,
-        position = ?
-    WHERE applicant_id = ?
-", [
+            UPDATE schedule_contract 
+            SET contract_date = ?,
+                contract_time = ?,
+                contract_location = ?,
+                contract_notes = ?,
+                hourly_rate = ?,
+                employee_name = ?,
+                position = ?
+            WHERE applicant_id = ?
+        ", [
             $contractDate,
             $contractTime,
             $contractLocation,
@@ -101,13 +98,13 @@ try {
             $applicantId
         ]);
     } else {
-        // Insert new contract - FIXED SYNTAX
+        // Insert new contract
         $db->query("
-        INSERT INTO schedule_contract 
-        (applicant_id, contract_date, contract_time, contract_location, contract_notes, 
-        hourly_rate, employee_name, position)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ", [
+            INSERT INTO schedule_contract 
+            (applicant_id, contract_date, contract_time, contract_location, contract_notes, 
+            hourly_rate, employee_name, position)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ", [
             $applicantId,
             $contractDate,
             $contractTime,
@@ -119,6 +116,7 @@ try {
         ]);
     }
 
+    // Update applicant's contract signing date
     $db->query('UPDATE applicants SET contract_signing_date = ? WHERE id = ?', [$contractDate, $applicantId]);
 
     $db->commit();
@@ -126,6 +124,9 @@ try {
     // Format success message with date
     $formattedDate = date('F j, Y', strtotime($contractDate));
     $formattedTime = !empty($contractTime) ? date('g:i A', strtotime($contractTime)) : 'to be determined';
+
+    // FIX: Define the message variable
+    $message = "Contract scheduled successfully for " . ($name ?: $applicant['full_name']);
 
     $_SESSION['success'][] = $message . " on {$formattedDate} at {$formattedTime}";
 
