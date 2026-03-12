@@ -23,31 +23,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($error)) {
         try {
-            // Fix: Check what your Database class returns
             $existing = $db->query(
                 "SELECT COUNT(*) AS count FROM job_postings WHERE position = ? AND department = ? AND location = ? AND shift = ? AND salary = ?",
                 [$position, $department, $location, $shift, $salary]
             )->find();
 
-            // Debug: Uncomment this to see what's actually returned
-            // var_dump($existing); exit;
-
-            // Fix: Check the structure properly
-            if ($existing) {
-                // If $existing is an object or array with 'count' property
-                if (is_array($existing) && isset($existing['count']) && $existing['count'] > 0) {
-                    $error[] = 'This job posting already exists.';
-                    $_SESSION['error'] = $error;
-                    header('Location: /main?tab=recruitment&modal=newJobModal');
-                    exit();
-                }
-                // If $existing is just the count value
-                elseif (is_numeric($existing) && $existing > 0) {
-                    $error[] = 'This job posting already exists.';
-                    $_SESSION['error'] = $error;
-                    header('Location: /main?tab=recruitment&modal=newJobModal');
-                    exit();
-                }
+            if ($existing && $existing['count'] > 0) {
+                $error[] = 'This job posting already exists.';
+                $_SESSION['error'] = $error;
+                header('Location: /main?tab=recruitment&modal=newJobModal');
+                exit();
             }
 
             $db->query(
