@@ -7,16 +7,24 @@
         <p class="text-gray-500 text-sm mt-1">Sign in to access HR management system</p>
     </div>
 
+    <!-- Turnstile script (already in parent page, but included here for completeness) -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
     <form action="/hr-login" method="post">
         <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+
         <div class="input-group">
             <i class="fas fa-envelope"></i>
-            <input type="email" name="hr_email" placeholder="HR Email" value="">
+            <input type="email" name="hr_email" placeholder="HR Email" value="" required>
         </div>
 
         <div class="input-group">
             <i class="fas fa-lock"></i>
-            <input type="password" name="hr_password" placeholder="Password" value="">
+            <input type="password" name="hr_password" placeholder="Password" value="" required>
+        </div>
+
+        <!-- Cloudflare Turnstile Widget -->
+        <div class="turnstile-wrapper" data-sitekey="0x4AAAAAACp0bLBkrAZE4ATN" data-theme="light" data-size="normal">
         </div>
 
         <button type="submit" class="login-btn">
