@@ -48,10 +48,10 @@ require BASE_PATH . 'core/function/function.php';
 spl_autoload_register(function ($class) {
     // Remove the Core namespace
     $class = str_replace('Core\\', '', $class);
-    
+
     // Build correct file path
     $classFile = base_path("core/Class/{$class}.php");
-    
+
     if (file_exists($classFile)) {
         require $classFile;
     } else {
@@ -61,7 +61,7 @@ spl_autoload_register(function ($class) {
             base_path("Core/Class/{$class}.php"),
             base_path("core/classes/{$class}.php")
         ];
-        
+
         $found = false;
         foreach ($alternativePaths as $path) {
             if (file_exists($path)) {
@@ -70,7 +70,7 @@ spl_autoload_register(function ($class) {
                 break;
             }
         }
-        
+
         if (!$found) {
             die("Error: Cannot find class file for: {$class}");
         }
