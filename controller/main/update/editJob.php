@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $existing = $db->query(
                 "SELECT COUNT(*) AS count FROM job_postings WHERE position = ? AND location = ? AND shift = ? AND id != ?",
                 [$title, $location, $shift, $jobId]
-            )->find();
+            )->fetch_one();  // ← Returns a single row or false
 
             if ($existing && $existing['count'] > 0) {
                 $error[] = "A similar job posting already exists.";
