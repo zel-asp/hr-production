@@ -234,6 +234,130 @@ document.addEventListener('DOMContentLoaded', () => {
         const newUrl = window.location.pathname + '?tab=onboarding';
         history.replaceState({}, '', newUrl);
     }
+
+    // ============================================
+    // UNIVERSAL FORM LOADING HANDLER
+    // ============================================
+    class UniversalLoadingHandler {
+        constructor(options = {}) {
+            this.options = {
+                loadingText: 'Processing...',
+                loadingClass: 'btn-loading',
+                spinnerIcon: 'fa-spinner fa-spin',
+                buttonSelector: 'button[type="submit"]',
+                excludeForms: [],
+                ...options
+            };
+
+            this.init();
+        }
+
+        init() {
+            document.querySelectorAll('form').forEach(form => {
+                if (this.shouldExcludeForm(form)) return;
+                this.setupFormLoading(form);
+            });
+        }
+
+        shouldExcludeForm(form) {
+            return this.options.excludeForms.some(selector => {
+                return form.matches && form.matches(selector);
+            });
+        }
+
+        setupFormLoading(form) {
+            const originalOnSubmit = form.onsubmit;
+            form.onsubmit = null;
+
+            form.addEventListener('submit', (e) => {
+                const submitButton = form.querySelector(this.options.buttonSelector);
+
+                if (submitButton && submitButton.disabled) {
+                    e.preventDefault();
+                    return false;
+                }
+
+                if (originalOnSubmit) {
+                    const shouldSubmit = originalOnSubmit.call(form, e);
+                    if (shouldSubmit === false) return false;
+                }
+
+                if (submitButton) {
+                    this.setLoading(submitButton, true);
+                }
+
+                return true;
+            });
+        }
+
+        setLoading(element, isLoading) {
+            if (isLoading) {
+                if (!element.dataset.originalHtml) {
+                    element.dataset.originalHtml = element.innerHTML;
+                }
+
+                element.classList.add(this.options.loadingClass);
+                element.disabled = true;
+
+                const icon = element.querySelector('i.fa, i.fas, i.far');
+                if (icon) {
+                    icon.dataset.originalClass = icon.className;
+                    icon.className = `fas ${this.options.spinnerIcon}`;
+                } else {
+                    element.innerHTML = `<i class="fas ${this.options.spinnerIcon} mr-2"></i>${this.options.loadingText}`;
+                }
+            } else {
+                element.classList.remove(this.options.loadingClass);
+                element.disabled = false;
+
+                if (element.dataset.originalHtml) {
+                    element.innerHTML = element.dataset.originalHtml;
+                    delete element.dataset.originalHtml;
+                }
+
+                const icon = element.querySelector('i.fa, i.fas, i.far');
+                if (icon && icon.dataset.originalClass) {
+                    icon.className = icon.dataset.originalClass;
+                    delete icon.dataset.originalClass;
+                }
+            }
+        }
+    }
+
+    // Add CSS styles
+    const loadingStyles = document.createElement('style');
+    loadingStyles.textContent = `
+            button.btn-loading {
+                position: relative;
+            cursor: wait !important;
+            opacity: 0.7;
+            pointer-events: none;
+            transition: all 0.2s ease;
+            animation: btnPulse 1.5s ease-in-out infinite;
+    }
+
+            @keyframes btnPulse {
+                0 % { opacity: 1; }
+        50% {opacity: 0.6; }
+            100% {opacity: 1; }
+    }
+
+            .fa-spin {
+                animation: fa-spin 2s infinite linear;
+    }
+
+            @keyframes fa-spin {
+                0 % { transform: rotate(0deg); }
+        100% {transform: rotate(360deg); }
+    }
+            `;
+    document.head.appendChild(loadingStyles);
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+        new UniversalLoadingHandler();
+    });
+
 });
 
 // Notification function

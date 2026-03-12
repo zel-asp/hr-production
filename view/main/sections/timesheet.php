@@ -243,8 +243,8 @@
                                                 </div>
 
                                             <?php elseif ($isPending): ?>
-                                                <!-- PENDING - Active approve button with loading state -->
-                                                <form action="/approve-timesheet" method="POST" class="inline-block">
+                                                <form action="/approve-timesheet" method="POST" class="inline-block"
+                                                    onsubmit="return confirm('Approve timesheet for <?= htmlspecialchars($timesheet['full_name']) ?>?')">
                                                     <input type="hidden" name="__method" value="PATCH">
                                                     <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
 
@@ -263,7 +263,6 @@
 
                                                     <button type="submit"
                                                         class="group relative w-9 h-9 flex items-center justify-center text-green-600 hover:text-white bg-green-50 hover:bg-green-600 rounded-lg transition-all duration-200 border border-green-200 hover:border-green-600 shadow-sm hover:shadow-md"
-                                                        onclick="return confirm('Approve timesheet for <?= htmlspecialchars($timesheet['full_name']) ?>?')"
                                                         title="Approve timesheet">
                                                         <i
                                                             class="fas fa-check text-sm group-hover:scale-110 transition-transform duration-200"></i>
