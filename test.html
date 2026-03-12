@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <title>Simple API Test</title>
+    </head>
+
+    <body>
+        <h2>HR API Test</h2>
+
+        <div>
+            <label>Department:</label>
+            <input type="text" id="dept" value="Finance">
+        </div>
+        <br>
+
+        <button onclick="testEmployees()">Get Employees</button>
+        <button onclick="testApplicants()">Get Applicants</button>
+        <button onclick="testJobRequisitions()">Get Job Requisitions</button>
+        <br><br>
+
+        <h3>Response:</h3>
+        <pre id="result"
+            style="background:#f4f4f4; padding:10px; border:1px solid #ccc; min-height:100px;">Click a button to test...</pre>
+
+        <script>
+            const baseUrl = 'https://humanresource.up.railway.app';
+            const apiKey = 'hr_system_2026_secure_key_12345';
+
+            async function testEmployees() {
+                const dept = document.getElementById('dept').value;
+                const url = `${baseUrl}/api/employees?department=${dept}&api_key=${apiKey}`;
+
+                document.getElementById('result').innerHTML = 'Loading...';
+
+                try {
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    document.getElementById('result').innerHTML = JSON.stringify(data, null, 2);
+                } catch (error) {
+                    document.getElementById('result').innerHTML = 'Error: ' + error.message;
+                }
+            }
+
+            async function testApplicants() {
+                const dept = document.getElementById('dept').value;
+                const url = `${baseUrl}/api/applicants?department=${dept}&api_key=${apiKey}`;
+
+                document.getElementById('result').innerHTML = 'Loading...';
+
+                try {
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    document.getElementById('result').innerHTML = JSON.stringify(data, null, 2);
+                } catch (error) {
+                    document.getElementById('result').innerHTML = 'Error: ' + error.message;
+                }
+            }
+
+            async function testJobRequisitions() {
+                const url = `${baseUrl}/api/job-requisitions?api_key=${apiKey}`;
+
+                document.getElementById('result').innerHTML = 'Loading...';
+
+                try {
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    document.getElementById('result').innerHTML = JSON.stringify(data, null, 2);
+                } catch (error) {
+                    document.getElementById('result').innerHTML = 'Error: ' + error.message;
+                }
+            }
+        </script>
+    </body>
+
+</html>
