@@ -240,29 +240,6 @@ try {
     $applicantTasks = [];
     error_log($th->getMessage());
 }
-
-try {
-    $staffMembers = $db->query(
-        "SELECT DISTINCT assigned_staff 
-        FROM tasks 
-        WHERE assigned_staff IS NOT NULL AND assigned_staff != ''
-        UNION
-        SELECT 'Sarah Reyes' as assigned_staff
-        UNION
-        SELECT 'Mike Dela Cruz'
-        UNION
-        SELECT 'Lisa Martinez'
-        ORDER BY assigned_staff"
-    )->find();
-} catch (\Throwable $th) {
-    $staffMembers = [
-        ['assigned_staff' => 'Sarah Reyes'],
-        ['assigned_staff' => 'Mike Dela Cruz'],
-        ['assigned_staff' => 'Lisa Martinez']
-    ];
-    error_log($th->getMessage());
-}
-
 // ============================================
 // ONBOARDING SECTION
 // ============================================

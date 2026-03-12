@@ -113,7 +113,6 @@ $limitedTasks = $db->query("
         t.task_description,
         t.due_date,
         t.priority,
-        t.assigned_staff,
         t.status,
         e.full_name as employee_name
     FROM tasks t
@@ -147,7 +146,6 @@ $allTasks = $db->query("
         t.task_description,
         t.due_date,
         t.priority,
-        t.assigned_staff,
         t.status,
         e.full_name as employee_name
     FROM tasks t

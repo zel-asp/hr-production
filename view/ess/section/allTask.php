@@ -90,7 +90,6 @@
                             <p class="text-xs text-gray-400">
                                 due <?= date('M j', strtotime($task['due_date'])) ?> ·
                                 <?= htmlspecialchars($task['priority']) ?> ·
-                                <?= htmlspecialchars($task['assigned_staff']) ?>
                             </p>
                         </div>
                     </div>
