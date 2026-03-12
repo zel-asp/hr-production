@@ -7,33 +7,21 @@
         <p class="text-gray-500 text-sm mt-1">Sign in to access HR management system</p>
     </div>
 
-    <form action="/hr-login" method="post" onsubmit="return validateHrForm()">
+    <form action="/hr-login" method="post">
         <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-
         <div class="input-group">
             <i class="fas fa-envelope"></i>
-            <input type="email" name="email" placeholder="HR Email" required>
+            <input type="email" name="hr_email" placeholder="HR Email" value="">
         </div>
 
         <div class="input-group">
             <i class="fas fa-lock"></i>
-            <div class="password-wrapper">
-                <input type="password" name="password" id="hr-password" placeholder="Password" required>
-                <button type="button" class="toggle-password" onclick="togglePassword('hr-password', this)">
-                    <i class="fas fa-eye"></i>
-                </button>
-            </div>
+            <input type="password" name="hr_password" placeholder="Password" value="">
         </div>
 
-        <!-- Turnstile CAPTCHA -->
-        <div class="cf-turnstile" id="hr-captcha" data-sitekey="0x4AAAAAACp0bLBkrAZE4ATN" data-theme="light"
-            data-callback="enableHrSubmit">
-        </div>
-
-        <input type="hidden" name="cf-turnstile-response" id="hr-turnstile-response">
-
-        <button type="submit" id="hrSubmitBtn" class="login-btn" disabled>
-            Complete CAPTCHA First
+        <button type="submit" class="login-btn">
+            <i class="fas fa-sign-in-alt"></i>
+            Sign In
         </button>
     </form>
 </div>

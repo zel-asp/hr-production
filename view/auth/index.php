@@ -10,48 +10,6 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     </head>
 
-    <style>
-        /* Minimal CSS for password toggle */
-        .password-wrapper {
-            position: relative;
-            width: 100%;
-        }
-
-        .password-wrapper input {
-            width: 100%;
-            padding-right: 40px !important;
-        }
-
-        .toggle-password {
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: #6b7280;
-            cursor: pointer;
-            padding: 5px;
-        }
-
-        .toggle-password:hover {
-            color: #1e3a5f;
-        }
-
-        /* Turnstile container */
-        .cf-turnstile {
-            margin: 20px 0;
-            display: flex;
-            justify-content: center;
-        }
-
-        /* Disabled button state */
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-    </style>
-
     <body class="bg-gray-50 min-h-screen flex items-center justify-center p-5">
         <?php require base_path('view/partials/message.php'); ?>
 
@@ -169,66 +127,8 @@
         </div>
 
         <script src="/public/assets/js/auth.js"></script>
-        <!-- Add Turnstile script -->
-        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
-        <!-- Add password toggle and form handling -->
-        <script>
-            // Password toggle function
-            function togglePassword(inputId, btn) {
-                const input = document.getElementById(inputId);
-                const icon = btn.querySelector('i');
 
-                if (input.type === 'password') {
-                    input.type = 'text';
-                    icon.classList.remove('fa-eye');
-                    icon.classList.add('fa-eye-slash');
-                } else {
-                    input.type = 'password';
-                    icon.classList.remove('fa-eye-slash');
-                    icon.classList.add('fa-eye');
-                }
-            }
-
-            // Enable submit after CAPTCHA
-            function enableEmployeeSubmit(token) {
-                const btn = document.getElementById('employeeSubmitBtn');
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i>Sign In';
-                btn.classList.remove('opacity-50', 'cursor-not-allowed');
-            }
-
-            function enableHrSubmit(token) {
-                const btn = document.getElementById('hrSubmitBtn');
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i>Sign In';
-                btn.classList.remove('opacity-50', 'cursor-not-allowed');
-            }
-
-            // Reset CAPTCHA when switching tabs
-            function switchTab(tab) {
-                // Your existing tab switching code
-                if (tab === 'employee') {
-                    document.querySelector('.employee-content').style.display = 'flex';
-                    document.querySelector('.hr-content').style.display = 'none';
-                    if (window.turnstile) {
-                        turnstile.reset('#employee-captcha');
-                        document.getElementById('employeeSubmitBtn').disabled = true;
-                        document.getElementById('employeeSubmitBtn').innerHTML = 'Complete CAPTCHA First';
-                        document.getElementById('employeeSubmitBtn').classList.add('opacity-50', 'cursor-not-allowed');
-                    }
-                } else {
-                    document.querySelector('.employee-content').style.display = 'none';
-                    document.querySelector('.hr-content').style.display = 'flex';
-                    if (window.turnstile) {
-                        turnstile.reset('#hr-captcha');
-                        document.getElementById('hrSubmitBtn').disabled = true;
-                        document.getElementById('hrSubmitBtn').innerHTML = 'Complete CAPTCHA First';
-                        document.getElementById('hrSubmitBtn').classList.add('opacity-50', 'cursor-not-allowed');
-                    }
-                }
-            }
-        </script>
     </body>
 
 </html>
