@@ -2657,14 +2657,13 @@ foreach ($successionCandidates as $candidate) {
         $ready3to6++;
     }
 }
-
 // ============================================
-// SUCCESSION PLANNING SECTION
+// SUCCESSION PLANNING SECTION - UPDATED TO SHOW ALL CANDIDATES
 // ============================================
 
-// Pagination - USING 5 PER PAGE (not 1)
+// Pagination
 $successionPage = isset($_GET['succession_page']) ? max(1, (int) $_GET['succession_page']) : 1;
-$successionPerPage = 1;
+$successionPerPage = 5; // Changed from 1 to 5 to show more per page
 $successionOffset = ($successionPage - 1) * $successionPerPage;
 
 // Filter parameters
@@ -2707,7 +2706,7 @@ try {
     ")->fetch_one()['count'] ?? 0;
 } catch (\Throwable $th) {
     $successionReadyCount = 0;
-    error_log("Error counting candidates: " . $th->getMessage());
+    error_log("Error counting ready candidates: " . $th->getMessage());
 }
 
 // Total Training Completed
@@ -2749,9 +2748,10 @@ try {
 }
 
 // ============================================
-// SUCCESSION CANDIDATES - Only fully qualified
+// SUCCESSION CANDIDATES - ALL EMPLOYEES (not just fully qualified)
 // ============================================
 
+// Get total candidates count for pagination (ALL employees with tasks, trainings, assessments)
 try {
     $successionTotalCandidates = $db->query("
         SELECT COUNT(DISTINCT e.id) as count
@@ -2772,7 +2772,7 @@ try {
     error_log("Error counting candidates: " . $th->getMessage());
 }
 
-// Get paginated fully qualified candidates
+// Get paginated candidates (ALL candidates, not just fully qualified)
 try {
     $orderBy = match ($successionSortBy) {
         'department' => "e.department ASC, e.full_name ASC",
@@ -2835,6 +2835,8 @@ try {
                 WHEN NOT EXISTS (
                     SELECT 1 FROM tasks t 
                     WHERE t.assigned_to = e.id AND t.status != 'Completed'
+                ) AND EXISTS (
+                    SELECT 1 FROM tasks t WHERE t.assigned_to = e.id
                 ) THEN 1 ELSE 0 
             END as all_tasks_complete,
             
@@ -2843,6 +2845,8 @@ try {
                 WHEN NOT EXISTS (
                     SELECT 1 FROM training_schedule ts 
                     WHERE ts.employee_id = e.id AND ts.status != 'Completed'
+                ) AND EXISTS (
+                    SELECT 1 FROM training_schedule ts WHERE ts.employee_id = e.id
                 ) THEN 1 ELSE 0 
             END as all_trainings_complete,
             
@@ -2854,14 +2858,26 @@ try {
                     JOIN competencies c ON ca.competency_id = c.id
                     WHERE ca.employee_id = e.id
                     AND ca.proficiency_level < c.required_level
+                ) AND EXISTS (
+                    SELECT 1 FROM competency_assessments ca WHERE ca.employee_id = e.id
                 ) THEN 1 ELSE 0 
             END as no_competency_gaps,
             
             -- Readiness status
             CASE 
-                WHEN all_tasks_complete = 1 
-                AND all_trainings_complete = 1 
-                AND no_competency_gaps = 1 THEN 'ready_now'
+                WHEN NOT EXISTS (
+                    SELECT 1 FROM tasks t WHERE t.assigned_to = e.id AND t.status != 'Completed'
+                )
+                AND NOT EXISTS (
+                    SELECT 1 FROM training_schedule ts WHERE ts.employee_id = e.id AND ts.status != 'Completed'
+                )
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM competency_assessments ca
+                    JOIN competencies c ON ca.competency_id = c.id
+                    WHERE ca.employee_id = e.id
+                    AND ca.proficiency_level < c.required_level
+                ) THEN 'ready_now'
                 ELSE 'in_progress'
             END as readiness_status,
             
@@ -2913,9 +2929,6 @@ try {
                     WHERE ca.employee_id = e.id
                     AND ca.proficiency_level < c.required_level
                 )
-                AND EXISTS (SELECT 1 FROM tasks t WHERE t.assigned_to = e.id)
-                AND EXISTS (SELECT 1 FROM training_schedule ts WHERE ts.employee_id = e.id)
-                AND EXISTS (SELECT 1 FROM competency_assessments ca WHERE ca.employee_id = e.id)
                 THEN e.id 
             END) as ready_candidates
         FROM employees e
@@ -2933,17 +2946,25 @@ try {
 // ============================================
 // READINESS SUMMARY
 // ============================================
-// Since we're only showing fully qualified candidates, readiness summary is simplified
-$successionReadyNow = $successionReadyCount;
+// Calculate readiness counts from all candidates
+$successionReadyNow = 0;
 $successionReadySoon = 0;
 $successionInProgress = 0;
+
+foreach ($successionCandidates as $candidate) {
+    if ($candidate['readiness_status'] == 'ready_now') {
+        $successionReadyNow++;
+    } else {
+        $successionInProgress++;
+    }
+}
 
 // Format functions
 function getReadinessBadge($status)
 {
     return match ($status) {
         'ready_now' => ['text' => 'Ready Now', 'class' => 'bg-green-50 text-green-700 border-green-200'],
-        'ready_soon' => ['text' => 'Ready Soon', 'class' => 'bg-amber-50 text-amber-700 border-amber-200'],
+        'in_progress' => ['text' => 'In Progress', 'class' => 'bg-blue-50 text-blue-700 border-blue-200'],
         default => ['text' => 'In Progress', 'class' => 'bg-blue-50 text-blue-700 border-blue-200']
     };
 }
@@ -2952,7 +2973,7 @@ function getReadinessIcon($status)
 {
     return match ($status) {
         'ready_now' => 'fa-check-circle',
-        'ready_soon' => 'fa-clock',
+        'in_progress' => 'fa-spinner',
         default => 'fa-spinner'
     };
 }
