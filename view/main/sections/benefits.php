@@ -5,10 +5,16 @@
             <h2 class="text-2xl font-semibold text-gray-800">HMO & Benefits Administration</h2>
             <p class="text-gray-500 text-sm mt-1">Manage employee health insurance and benefits</p>
         </div>
-        <button class="btn-primary" onclick="openModal('enrollBenefitModal')">
-            <i class="fas fa-plus"></i>
-            Enroll Employee
-        </button>
+        <div class="flex gap-2">
+            <button class="btn-secondary" onclick="openModal('addProviderModal')">
+                <i class="fas fa-plus"></i>
+                Add Provider
+            </button>
+            <button class="btn-primary" onclick="openModal('enrollBenefitModal')">
+                <i class="fas fa-plus"></i>
+                Enroll Employee
+            </button>
+        </div>
     </div>
 
     <!-- Benefits Overview Stats -->
@@ -466,6 +472,62 @@
         </div>
     <?php endforeach; ?>
 <?php endif; ?>
+
+
+<!-- Add Provider Modal -->
+<div id="addProviderModal" class="modal fixed inset-0 bg-gray-800/40 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4">
+        <form id="addProviderForm" method="POST" action="/addProvider">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">Add New Benefit Provider</h3>
+                    <button type="button" onclick="closeModal('addProviderModal')"
+                        class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <!-- Provider Name -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Provider Name <span
+                                class="text-red-500">*</span></label>
+                        <input type="text" name="provider_name" required placeholder="e.g., Maxicare, Medicard, etc."
+                            class="w-full text-sm bg-white border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-200">
+                    </div>
+
+                    <!-- Contact Info -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Contact Information</label>
+                        <input type="text" name="contact_info" placeholder="Phone, email, or address"
+                            class="w-full text-sm bg-white border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-200">
+                    </div>
+
+                    <!-- Notes -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                        <textarea name="notes" rows="3" placeholder="Additional information about the provider"
+                            class="w-full text-sm bg-white border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-200"></textarea>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="flex justify-end gap-2 pt-4 border-t border-gray-200">
+                        <button type="button" onclick="closeModal('addProviderModal')"
+                            class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                            Cancel
+                        </button>
+                        <button type="submit" name="add_provider"
+                            class="px-4 py-2 text-sm text-white bg-gray-800 rounded-lg hover:bg-gray-900 transition-colors flex items-center gap-2">
+                            <i class="fas fa-save text-xs"></i>
+                            Add Provider
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
 
 <script>
     function applyHmoFilter() {
