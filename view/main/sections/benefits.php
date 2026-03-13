@@ -17,6 +17,27 @@
         </div>
     </div>
 
+    <!-- Display Session Messages -->
+    <?php if (!empty($_SESSION['success'])): ?>
+        <?php foreach ($_SESSION['success'] as $message): ?>
+            <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 flex items-center gap-2">
+                <i class="fas fa-check-circle"></i>
+                <?= htmlspecialchars($message) ?>
+            </div>
+        <?php endforeach; ?>
+        <?php $_SESSION['success'] = []; ?>
+    <?php endif; ?>
+
+    <?php if (!empty($_SESSION['error'])): ?>
+        <?php foreach ($_SESSION['error'] as $message): ?>
+            <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-center gap-2">
+                <i class="fas fa-exclamation-circle"></i>
+                <?= htmlspecialchars($message) ?>
+            </div>
+        <?php endforeach; ?>
+        <?php $_SESSION['error'] = []; ?>
+    <?php endif; ?>
+
     <!-- Benefits Overview Stats -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div class="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
@@ -161,7 +182,21 @@
                 <div class="p-6">
                     <div class="space-y-3">
                         <?php if (!empty($hmoExpiringSoon)): ?>
-                            <?php foreach ($hmoExpiringSoon as $expiring): ?>
+                            <?php foreach ($hmoExpiringSoon as $expiring):
+                                // Prepare email content for expiring benefits
+                                $benefitEmailSubject = "Reminder: Your " . htmlspecialchars($expiring['provider_name']) . " Benefit is Expiring Soon";
+                                $benefitEmailBody = "Dear " . htmlspecialchars($expiring['full_name']) . ",\n\n"
+                                    . "This is a friendly reminder that your " . htmlspecialchars($expiring['provider_name']) . " benefit is expiring soon.\n\n"
+                                    . "Benefit Details:\n"
+                                    . "Provider: " . htmlspecialchars($expiring['provider_name']) . "\n"
+                                    . "Benefit Type: " . htmlspecialchars($expiring['benefit_type'] ?? 'HMO') . "\n"
+                                    . "Expiry Date: " . date('F j, Y', strtotime($expiring['expiry_date'])) . "\n"
+                                    . "Days Remaining: " . ($expiring['days_until_expiry'] ?? 'N/A') . " days\n\n"
+                                    . "Please contact the HR department to discuss renewal options.\n\n"
+                                    . "If you have any questions, please don't hesitate to reach out.\n\n"
+                                    . "Best regards,\n"
+                                    . "HR Benefits Team";
+                                ?>
                                 <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
@@ -176,6 +211,17 @@
                                             </p>
                                         </div>
                                     </div>
+
+                                    <!-- Email Button for Expiring Benefits -->
+                                    <?php if (!empty($expiring['email'])): ?>
+                                        <a href="https://mail.google.com/mail/?view=cm&fs=1&to=<?= urlencode($expiring['email']) ?>&su=<?= urlencode($benefitEmailSubject) ?>&body=<?= urlencode($benefitEmailBody) ?>"
+                                            target="_blank"
+                                            class="flex items-center justify-center gap-1.5 px-3 py-2 bg-white text-yellow-600 hover:bg-yellow-50 rounded-md text-sm font-medium transition border border-gray-200 whitespace-nowrap"
+                                            title="Send reminder email">
+                                            <i class="fas fa-envelope text-xs"></i>
+                                            <span>Remind</span>
+                                        </a>
+                                    <?php endif; ?>
                                 </div>
                             <?php endforeach; ?>
                         <?php else: ?>
@@ -197,7 +243,31 @@
                 <div class="p-6">
                     <div class="space-y-3">
                         <?php if (!empty($hmoRecentEnrollments)): ?>
-                            <?php foreach ($hmoRecentEnrollments as $enrollment): ?>
+                            <?php foreach ($hmoRecentEnrollments as $enrollment):
+                                // Prepare welcome email for new enrollments
+                                $welcomeEmailSubject = "Welcome to " . htmlspecialchars($enrollment['provider_name']) . " Benefits";
+                                $welcomeEmailBody = "Dear " . htmlspecialchars($enrollment['full_name']) . ",\n\n"
+                                    . "Welcome to the " . htmlspecialchars($enrollment['provider_name']) . " benefits program!\n\n"
+                                    . "Your enrollment has been successfully processed. Here are your benefit details:\n\n"
+                                    . "Provider: " . htmlspecialchars($enrollment['provider_name']) . "\n"
+                                    . "Benefit Type: " . htmlspecialchars($enrollment['benefit_type'] ?? 'HMO') . "\n"
+                                    . "Effective Date: " . date('F j, Y', strtotime($enrollment['effective_date'])) . "\n"
+                                    . "Coverage Amount: " . formatHmoCurrency($enrollment['coverage_amount'] ?? 200000) . "\n"
+                                    . "Monthly Premium: " . formatHmoCurrency($enrollment['monthly_premium'] ?? 0) . "\n\n";
+
+                                if (!empty($enrollment['expiry_date'])) {
+                                    $welcomeEmailBody .= "Expiry Date: " . date('F j, Y', strtotime($enrollment['expiry_date'])) . "\n\n";
+                                }
+
+                                if (!empty($enrollment['dependents'])) {
+                                    $welcomeEmailBody .= "Covered Dependents:\n" . $enrollment['dependents'] . "\n\n";
+                                }
+
+                                $welcomeEmailBody .= "For more information about your benefits or if you have any questions, please contact the HR Benefits Team.\n\n"
+                                    . "We're glad to have you on board!\n\n"
+                                    . "Best regards,\n"
+                                    . "HR Benefits Team";
+                                ?>
                                 <div class="flex items-center gap-3">
                                     <div
                                         class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 text-xs font-medium">
@@ -212,6 +282,18 @@
                                             <?= $enrollment['days_ago'] ?> days ago
                                         </p>
                                     </div>
+
+                                    <!-- Email Button for New Enrollments -->
+                                    <?php if (!empty($enrollment['email'])): ?>
+                                        <a href="https://mail.google.com/mail/?view=cm&fs=1&to=<?= urlencode($enrollment['email']) ?>&su=<?= urlencode($welcomeEmailSubject) ?>&body=<?= urlencode($welcomeEmailBody) ?>"
+                                            target="_blank"
+                                            class="flex items-center justify-center gap-1.5 px-3 py-2 bg-white text-green-600 hover:bg-green-50 rounded-md text-sm font-medium transition border border-gray-200 whitespace-nowrap"
+                                            title="Send welcome email">
+                                            <i class="fas fa-envelope text-xs"></i>
+                                            <span>Welcome</span>
+                                        </a>
+                                    <?php endif; ?>
+
                                     <span
                                         class="text-xs <?= $enrollment['enrollment_status'] == 'Processed' ? 'text-gray-500' : 'text-yellow-600' ?>">
                                         <?= $enrollment['enrollment_status'] ?>
@@ -264,7 +346,22 @@
                     </thead>
                     <tbody>
                         <?php if (!empty($hmoBenefitsList)): ?>
-                            <?php foreach ($hmoBenefitsList as $benefit): ?>
+                            <?php foreach ($hmoBenefitsList as $benefit):
+                                // Prepare email content for benefit details
+                                $benefitInfoSubject = "Your Benefit Details - " . htmlspecialchars($benefit['provider_name']);
+                                $benefitInfoBody = "Dear " . htmlspecialchars($benefit['full_name']) . ",\n\n"
+                                    . "Here are your current benefit details:\n\n"
+                                    . "Provider: " . htmlspecialchars($benefit['provider_name']) . "\n"
+                                    . "Benefit Type: " . htmlspecialchars($benefit['benefit_type'] ?? 'HMO') . "\n"
+                                    . "Effective Date: " . $benefit['formatted_effective'] . "\n"
+                                    . "Expiry Date: " . ($benefit['formatted_expiry'] ?? 'No Expiry') . "\n"
+                                    . "Coverage Amount: " . formatHmoCurrency($benefit['coverage_amount'] ?? 200000) . "\n"
+                                    . "Monthly Premium: " . formatHmoCurrency($benefit['monthly_premium'] ?? 0) . "\n\n"
+                                    . "Status: " . $benefit['status_text'] . "\n\n"
+                                    . "If you have any questions about your benefits, please contact the HR Benefits Team.\n\n"
+                                    . "Best regards,\n"
+                                    . "HR Benefits Team";
+                                ?>
                                 <tr class="border-b border-gray-50 hover:bg-gray-50/50 transition-colors duration-150">
                                     <td class="py-3">
                                         <div class="flex items-center gap-2">
@@ -301,6 +398,17 @@
                                     </td>
                                     <td class="py-3">
                                         <div class="flex items-center gap-2">
+                                            <!-- Email Button for Benefit Details -->
+                                            <?php if (!empty($benefit['email'])): ?>
+                                                <a href="https://mail.google.com/mail/?view=cm&fs=1&to=<?= urlencode($benefit['email']) ?>&su=<?= urlencode($benefitInfoSubject) ?>&body=<?= urlencode($benefitInfoBody) ?>"
+                                                    target="_blank"
+                                                    class="text-sm text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg transition-colors duration-200 flex items-center gap-1"
+                                                    title="Send benefit details via email">
+                                                    <i class="fas fa-envelope text-xs"></i>
+                                                    Email
+                                                </a>
+                                            <?php endif; ?>
+
                                             <button onclick="openModal('viewBenefitModal<?= $benefit['id'] ?>')"
                                                 class="text-sm text-gray-500 hover:text-gray-700 bg-gray-50 hover:bg-gray-100 px-2.5 py-1 rounded-lg transition-colors duration-200 flex items-center gap-1">
                                                 <i class="fas fa-eye text-xs"></i>
