@@ -2504,7 +2504,7 @@ try {
             ), 0) as total_tasks,
             COALESCE((
                 SELECT COUNT(*) FROM tasks 
-                WHERE assigned_to = e.id AND status = 'Completed'
+                WHERE assigned_to = e.id'
             ), 0) as completed_tasks,
             -- Training metrics
             COALESCE((
@@ -2513,7 +2513,7 @@ try {
             ), 0) as total_trainings,
             COALESCE((
                 SELECT COUNT(*) FROM training_schedule 
-                WHERE employee_id = e.id AND status = 'Completed'
+                WHERE employee_id = e.id'
             ), 0) as completed_trainings,
             -- Competency metrics
             COALESCE((
@@ -2529,14 +2529,14 @@ try {
             -- Last training date
             (
                 SELECT MAX(end_date) FROM training_schedule 
-                WHERE employee_id = e.id AND status = 'Completed'
+                WHERE employee_id = e.id'
             ) as last_training_date,
             -- Readiness score (custom calculation)
             (
                 (
                     COALESCE((
                         SELECT COUNT(*) FROM tasks 
-                        WHERE assigned_to = e.id AND status = 'Completed'
+                        WHERE assigned_to = e.id'
                     ), 0) * 100.0 / 
                     NULLIF((
                         SELECT COUNT(*) FROM tasks 
