@@ -85,6 +85,7 @@ $router->get('/export/employees-csv', 'controller/main/get/excelEmployees.php');
 // ATTENDANCE
 $router->post('/attendance/handle', 'controller/ess/post/attendance.php');
 $router->post('/addProvider', 'controller/main/post/addProvider.php');
+$router->post('/addNoteFromTraining', 'controller/main/post/trainingNote.php');
 
 //LEAVE
 $router->patch('/leave/deny', 'controller/main/update/leave-deny.php');

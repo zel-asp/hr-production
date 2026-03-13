@@ -90,6 +90,8 @@
                             </th>
                             <th class="text-left py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Assessment</th>
+                            <th class="text-left py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -154,9 +156,39 @@
                                 if ($training['start_time']) {
                                     $scheduleText .= ' · ' . date('g:i A', strtotime($training['start_time']));
                                 }
+
+                                // Hardcoded message based on status
+                                $message = '';
+                                $title = '';
+
+                                switch ($training['status']) {
+                                    case 'Scheduled':
+                                        $title = "Training Reminder";
+                                        $message = "You have a scheduled training: " . htmlspecialchars($training['training_title']) . " on " . $scheduleText;
+                                        break;
+                                    case 'Completed':
+                                        if ($training['assessment_status'] == 'pending') {
+                                            $title = "Assessment Required";
+                                            $message = "Please complete your assessment for: " . htmlspecialchars($training['training_title']);
+                                        } elseif ($training['assessment_status'] == 'completed') {
+                                            $title = "Congratulations!";
+                                            $message = "You passed the assessment for: " . htmlspecialchars($training['training_title']);
+                                        } elseif ($training['assessment_status'] == 'failed') {
+                                            $title = "Assessment Result";
+                                            $message = "You can retake the assessment for: " . htmlspecialchars($training['training_title']);
+                                        }
+                                        break;
+                                    case 'Missed':
+                                        $title = "Missed Training";
+                                        $message = "You missed the training: " . htmlspecialchars($training['training_title']) . ". Please contact HR.";
+                                        break;
+                                }
                                 ?>
                                 <tr class="border-b border-gray-50 hover:bg-gray-50/50 transition-colors duration-150">
                                     <td class="py-3">
+                                        <p class="text-sm font-medium text-gray-800">
+                                            <?= htmlspecialchars($training['training_title'] ?? 'N/A') ?>
+                                        </p>
                                         <?php if ($training['competency_name']): ?>
                                             <p class="text-xs text-gray-400 mt-0.5">Competency:
                                                 <?= htmlspecialchars($training['competency_name']) ?>
@@ -193,6 +225,19 @@
                                             <?= $assessmentText ?>
                                         </span>
                                     </td>
+                                    <td class="py-3">
+                                        <form method="POST" action="/addNoteFromTraining">
+                                            <input type="hidden" name="employee_id" value="<?= $training['employee_id'] ?>">
+                                            <input type="hidden" name="title" value="<?= htmlspecialchars($title) ?>">
+                                            <input type="hidden" name="message" value="<?= htmlspecialchars($message) ?>">
+                                            <input type="hidden" name="type" value="training">
+                                            <button type="submit" name="send_notification"
+                                                class="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-md text-xs font-medium transition border border-blue-200 whitespace-nowrap">
+                                                <i class="fas fa-bell text-xs"></i>
+                                                <span>Notify</span>
+                                            </button>
+                                        </form>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
@@ -215,9 +260,9 @@
                 <div class="flex justify-center mt-6 gap-2">
                     <?php for ($i = 1; $i <= $totalTrainingPages; $i++): ?>
                         <a href="?tab=training&training_filter=<?= $trainingFilter ?>&training_page=<?= $i ?>" class="px-4 py-2 rounded-lg text-sm font-medium transition-colors
-                       <?= $i == $trainingPage
-                           ? 'bg-gray-800 text-white'
-                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200' ?>">
+                   <?= $i == $trainingPage
+                       ? 'bg-gray-800 text-white'
+                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200' ?>">
                             <?= $i ?>
                         </a>
                     <?php endfor; ?>
