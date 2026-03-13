@@ -26,8 +26,8 @@ if (
 
 try {
     // Sanitize common inputs
-    $benefit_type = filter_var($_POST['benefit_type'], FILTER_SANITIZE_STRING);
-    $provider_id = filter_var($_POST['provider_id'], FILTER_SANITIZE_NUMBER_INT);
+    $benefit_type = filter_var($_POST['benefit_type']);
+    $provider_id = filter_var($_POST['provider_id']);
     $effective_date = $_POST['effective_date'];
     $expiry_date = !empty($_POST['expiry_date']) ? $_POST['expiry_date'] : null;
 
