@@ -26,8 +26,8 @@ if (
 
 try {
     // Sanitize common inputs
-    $benefit_type = filter_var($_POST['benefit_type']);
-    $provider_id = filter_var($_POST['provider_id']);
+    $benefit_type = $_POST['benefit_type'];
+    $provider_id = $_POST['provider_id'];
     $effective_date = $_POST['effective_date'];
     $expiry_date = !empty($_POST['expiry_date']) ? $_POST['expiry_date'] : null;
 
@@ -40,7 +40,7 @@ try {
         : null;
 
     $dependents = !empty($_POST['dependents'])
-        ? filter_var($_POST['dependents'], FILTER_SANITIZE_STRING)
+        ? $_POST['dependents']
         : null;
 
     // Sanitize employee IDs
