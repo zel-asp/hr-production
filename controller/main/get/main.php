@@ -2504,7 +2504,7 @@ try {
             ), 0) as total_tasks,
             COALESCE((
                 SELECT COUNT(*) FROM tasks 
-                WHERE assigned_to = e.id'
+                WHERE assigned_to = e.id AND status = 'Completed'
             ), 0) as completed_tasks,
             -- Training metrics
             COALESCE((
@@ -2513,7 +2513,7 @@ try {
             ), 0) as total_trainings,
             COALESCE((
                 SELECT COUNT(*) FROM training_schedule 
-                WHERE employee_id = e.id'
+                WHERE employee_id = e.id AND status = 'Completed'
             ), 0) as completed_trainings,
             -- Competency metrics
             COALESCE((
@@ -2529,14 +2529,14 @@ try {
             -- Last training date
             (
                 SELECT MAX(end_date) FROM training_schedule 
-                WHERE employee_id = e.id'
+                WHERE employee_id = e.id AND status = 'Completed'
             ) as last_training_date,
             -- Readiness score (custom calculation)
             (
                 (
                     COALESCE((
                         SELECT COUNT(*) FROM tasks 
-                        WHERE assigned_to = e.id'
+                        WHERE assigned_to = e.id AND status = 'Completed'
                     ), 0) * 100.0 / 
                     NULLIF((
                         SELECT COUNT(*) FROM tasks 
@@ -2695,23 +2695,6 @@ try {
         SELECT COUNT(DISTINCT e.id) as count
         FROM employees e
         WHERE e.status IN ('Active', 'Regular', 'Probationary')
-        AND NOT EXISTS (
-            SELECT 1 FROM tasks t 
-            WHERE t.assigned_to = e.id 
-            AND t.status != 'Completed'
-        )
-        AND NOT EXISTS (
-            SELECT 1 FROM training_schedule ts 
-            WHERE ts.employee_id = e.id 
-            AND ts.status != 'Completed'
-        )
-        AND NOT EXISTS (
-            SELECT 1
-            FROM competency_assessments ca
-            JOIN competencies c ON ca.competency_id = c.id
-            WHERE ca.employee_id = e.id
-            AND ca.proficiency_level < c.required_level
-        )
         AND EXISTS (
             SELECT 1 FROM tasks t WHERE t.assigned_to = e.id
         )
@@ -2724,7 +2707,7 @@ try {
     ")->fetch_one()['count'] ?? 0;
 } catch (\Throwable $th) {
     $successionReadyCount = 0;
-    error_log("Error counting ready candidates: " . $th->getMessage());
+    error_log("Error counting candidates: " . $th->getMessage());
 }
 
 // Total Training Completed
@@ -2769,29 +2752,11 @@ try {
 // SUCCESSION CANDIDATES - Only fully qualified
 // ============================================
 
-// Get total fully qualified candidates count for pagination
 try {
     $successionTotalCandidates = $db->query("
         SELECT COUNT(DISTINCT e.id) as count
         FROM employees e
         WHERE e.status IN ('Active', 'Regular', 'Probationary')
-        AND NOT EXISTS (
-            SELECT 1 FROM tasks t 
-            WHERE t.assigned_to = e.id 
-            AND t.status != 'Completed'
-        )
-        AND NOT EXISTS (
-            SELECT 1 FROM training_schedule ts 
-            WHERE ts.employee_id = e.id 
-            AND ts.status != 'Completed'
-        )
-        AND NOT EXISTS (
-            SELECT 1
-            FROM competency_assessments ca
-            JOIN competencies c ON ca.competency_id = c.id
-            WHERE ca.employee_id = e.id
-            AND ca.proficiency_level < c.required_level
-        )
         AND EXISTS (
             SELECT 1 FROM tasks t WHERE t.assigned_to = e.id
         )
@@ -2804,7 +2769,7 @@ try {
     ")->fetch_one()['count'] ?? 0;
 } catch (\Throwable $th) {
     $successionTotalCandidates = 0;
-    error_log("Error counting fully qualified candidates: " . $th->getMessage());
+    error_log("Error counting candidates: " . $th->getMessage());
 }
 
 // Get paginated fully qualified candidates
@@ -2870,11 +2835,7 @@ try {
                 WHEN NOT EXISTS (
                     SELECT 1 FROM tasks t 
                     WHERE t.assigned_to = e.id AND t.status != 'Completed'
-                )
-                AND EXISTS (
-                    SELECT 1 FROM tasks t WHERE t.assigned_to = e.id
-                )
-                THEN 1 ELSE 0 
+                ) THEN 1 ELSE 0 
             END as all_tasks_complete,
             
             -- All trainings completed flag
@@ -2882,11 +2843,7 @@ try {
                 WHEN NOT EXISTS (
                     SELECT 1 FROM training_schedule ts 
                     WHERE ts.employee_id = e.id AND ts.status != 'Completed'
-                )
-                AND EXISTS (
-                    SELECT 1 FROM training_schedule ts WHERE ts.employee_id = e.id
-                )
-                THEN 1 ELSE 0 
+                ) THEN 1 ELSE 0 
             END as all_trainings_complete,
             
             -- No competency gaps flag
@@ -2897,37 +2854,21 @@ try {
                     JOIN competencies c ON ca.competency_id = c.id
                     WHERE ca.employee_id = e.id
                     AND ca.proficiency_level < c.required_level
-                )
-                AND EXISTS (
-                    SELECT 1 FROM competency_assessments ca WHERE ca.employee_id = e.id
-                )
-                THEN 1 ELSE 0 
+                ) THEN 1 ELSE 0 
             END as no_competency_gaps,
             
-            -- Readiness status (always 'ready_now' for these candidates)
-            'ready_now' as readiness_status,
+            -- Readiness status
+            CASE 
+                WHEN all_tasks_complete = 1 
+                AND all_trainings_complete = 1 
+                AND no_competency_gaps = 1 THEN 'ready_now'
+                ELSE 'in_progress'
+            END as readiness_status,
             
             CONCAT(LEFT(e.full_name, 1), COALESCE(RIGHT(LEFT(e.full_name, INSTR(e.full_name, ' ') + 1), 1), RIGHT(e.full_name, 1))) as initials
             
         FROM employees e
         WHERE e.status IN ('Active', 'Regular', 'Probationary')
-        AND NOT EXISTS (
-            SELECT 1 FROM tasks t 
-            WHERE t.assigned_to = e.id 
-            AND t.status != 'Completed'
-        )
-        AND NOT EXISTS (
-            SELECT 1 FROM training_schedule ts 
-            WHERE ts.employee_id = e.id 
-            AND ts.status != 'Completed'
-        )
-        AND NOT EXISTS (
-            SELECT 1
-            FROM competency_assessments ca
-            JOIN competencies c ON ca.competency_id = c.id
-            WHERE ca.employee_id = e.id
-            AND ca.proficiency_level < c.required_level
-        )
         AND EXISTS (
             SELECT 1 FROM tasks t WHERE t.assigned_to = e.id
         )
@@ -2944,7 +2885,7 @@ try {
 
 } catch (\Throwable $th) {
     $successionCandidates = [];
-    error_log("Error fetching fully qualified candidates: " . $th->getMessage());
+    error_log("Error fetching candidates: " . $th->getMessage());
 }
 
 $successionTotalPages = ceil($successionTotalCandidates / $successionPerPage);
