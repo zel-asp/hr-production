@@ -71,7 +71,10 @@ try {
 
     // Insert for each selected employee
     $successCount = 0;
+    $successfulEmployeeIds = [];
+
     foreach ($employee_ids as $employee_id) {
+        // Check for existing active benefit
         $existing = $db->query(
             "SELECT id FROM employee_benefits 
             WHERE employee_id = :employee_id 
@@ -84,6 +87,8 @@ try {
         )->find();
 
         if ($existing) {
+            // Log for debugging
+            error_log("Employee ID $employee_id already has active benefit of type $benefit_type");
             continue;
         }
 
@@ -100,21 +105,24 @@ try {
 
         if ($result) {
             $successCount++;
+            $successfulEmployeeIds[] = $employee_id;
         }
-
-        if ($successCount > 0) {
-            $placeholders = implode(',', array_fill(0, count($employee_ids), '?'));
-            $db->query(
-                "UPDATE employees SET benefit_status = 'enrolled' WHERE id IN ($placeholders)",
-                $employee_ids
-            );
-        }
-
     }
 
+    // Update employee status only for successfully enrolled employees
     if ($successCount > 0) {
-        $db->commit();
-        $_SESSION['success'][] = $successCount . ' employee(s) successfully enrolled in benefits';
+        $placeholders = implode(',', array_fill(0, count($successfulEmployeeIds), '?'));
+        $updateResult = $db->query(
+            "UPDATE employees SET benefit_status = 'enrolled' WHERE id IN ($placeholders)",
+            $successfulEmployeeIds
+        );
+
+        if ($updateResult) {
+            $db->commit();
+            $_SESSION['success'][] = $successCount . ' employee(s) successfully enrolled in benefits';
+        } else {
+            throw new Exception("Failed to update employee benefit status");
+        }
     } else {
         $db->rollBack();
         $_SESSION['error'][] = 'No employees were enrolled. They may already have active benefits of this type.';
@@ -124,8 +132,19 @@ try {
     if ($db->inTransaction()) {
         $db->rollBack();
     }
-    error_log("Benefit enrollment error: " . $e->getMessage());
-    $_SESSION['error'][] = 'Failed to enroll employees in benefits. Please try again.';
+    // Log detailed error for debugging
+    error_log("Benefit enrollment PDO error: " . $e->getMessage());
+    error_log("Error code: " . $e->getCode());
+    error_log("Stack trace: " . $e->getTraceAsString());
+
+    $_SESSION['error'][] = 'Failed to enroll employees in benefits: Database error';
+
+} catch (Exception $e) {
+    if ($db->inTransaction()) {
+        $db->rollBack();
+    }
+    error_log("Benefit enrollment general error: " . $e->getMessage());
+    $_SESSION['error'][] = 'Failed to enroll employees in benefits: ' . $e->getMessage();
 }
 
 header('Location: /main?tab=hmo');
