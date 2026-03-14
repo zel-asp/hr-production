@@ -259,21 +259,39 @@
                             </div>
 
                             <div class="flex flex-wrap gap-2" id="attendanceButtons">
+                                <?php
+                                // Determine if clock in should be disabled
+                                $clockInDisabled = (!$hasSchedule || $isDayOff) && $attendanceStatus == 'clocked_out';
+                                $clockInDisabledAttr = $clockInDisabled ? 'disabled' : '';
+                                $clockInExtraClasses = $clockInDisabled ? 'opacity-50 cursor-not-allowed' : '';
+                                $clockInTitle = '';
+
+                                if (!$hasSchedule) {
+                                    $clockInTitle = 'title="You have no assigned schedule. Please contact administrator."';
+                                } elseif ($isDayOff) {
+                                    $clockInTitle = 'title="Today is your day off. Contact administrator if you need to work today."';
+                                }
+                                ?>
+
                                 <button id="clockInBtn"
-                                    class="px-4 py-1.5 bg-white text-gray-800 hover:bg-gray-100 rounded-md text-sm font-medium transition <?= $showClockIn ? '' : 'hidden' ?>"
-                                    onclick="handleAttendance('clock_in')">
+                                    class="px-4 py-1.5 bg-white text-gray-800 hover:bg-gray-100 rounded-md text-sm font-medium transition <?= $showClockIn ? '' : 'hidden' ?> <?= $clockInExtraClasses ?>"
+                                    onclick="<?= !$clockInDisabled ? "handleAttendance('clock_in')" : "return false;" ?>"
+                                    <?= $clockInDisabledAttr ?> <?= $clockInTitle ?>>
                                     <i class="fa-solid fa-right-to-bracket mr-1"></i>Clock In
                                 </button>
+
                                 <button id="pauseBtn"
                                     class="px-4 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-md text-sm font-medium transition <?= ($attendanceStatus == 'clocked_in') ? '' : 'hidden' ?>"
                                     onclick="handleAttendance('pause')">
                                     <i class="fa-solid fa-pause mr-1"></i>Pause
                                 </button>
+
                                 <button id="resumeBtn"
                                     class="px-4 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-md text-sm font-medium transition <?= ($attendanceStatus == 'paused') ? '' : 'hidden' ?>"
                                     onclick="handleAttendance('resume')">
                                     <i class="fa-solid fa-play mr-1"></i>Resume
                                 </button>
+
                                 <button id="clockOutBtn"
                                     class="px-4 py-1.5 bg-white text-gray-800 hover:bg-gray-100 rounded-md text-sm font-medium transition <?= ($attendanceStatus != 'clocked_out') ? '' : 'hidden' ?>"
                                     onclick="handleAttendance('clock_out')">
@@ -288,6 +306,29 @@
                             <span id="overtimeHours"><?= floor(($elapsedSeconds - 28800) / 3600) ?></span>h overtime
                         </div>
                     </div>
+
+                    <!-- Add schedule info message if no schedule -->
+                    <?php if (!$hasSchedule && $attendanceStatus == 'clocked_out'): ?>
+                        <div class="bg-yellow-900/20 border border-yellow-800 rounded-lg p-4 mb-6">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-exclamation-triangle text-yellow-600"></i>
+                                <p class="text-sm text-yellow-600">
+                                    You don't have an assigned schedule yet. Please contact your administrator to set up
+                                    your schedule before clocking in.
+                                </p>
+                            </div>
+                        </div>
+                    <?php elseif ($isDayOff && $attendanceStatus == 'clocked_out'): ?>
+                        <div class="bg-blue-900/20 border border-blue-800 rounded-lg p-4 mb-6">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-calendar-day text-blue-600"></i>
+                                <p class="text-sm text-blue-600">
+                                    Today is your scheduled day off. If you need to work today, please contact your
+                                    administrator for approval.
+                                </p>
+                            </div>
+                        </div>
+                    <?php endif; ?>
 
                     <!-- Dynamic Content Based on Tab -->
                     <?php if ($currentTab == 'dashboard'): ?>
@@ -809,7 +850,7 @@
                 elapsedSeconds: <?= (int) $elapsedSeconds ?>,
                 csrfToken: '<?= $_SESSION['csrf_token'] ?>',
                 <?php if ($currentAttendance && isset($currentAttendance['clock_in'])): ?>
-                    shiftStartTime: '<?= $currentAttendance['clock_in'] ?>'
+                        shiftStartTime: '<?= $currentAttendance['clock_in'] ?>'
         <?php endif; ?>
             };
 

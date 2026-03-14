@@ -50,7 +50,57 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
     }
+
+    // Disable clock in button if no schedule or day off
+    disableClockInIfNoSchedule();
 });
+
+// NEW: Function to disable clock in button if no schedule or day off
+function disableClockInIfNoSchedule() {
+    const clockInBtn = document.getElementById('clockInBtn');
+    if (!clockInBtn) return;
+
+    if (config.hasSchedule === false || config.isDayOff === true) {
+        clockInBtn.disabled = true;
+        clockInBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        clockInBtn.title = config.hasSchedule === false
+            ? 'You have no assigned schedule. Please contact administrator.'
+            : 'Today is your day off. Contact administrator if you need to work today.';
+    }
+}
+
+// NEW: Function to check if employee has schedule before clocking in
+function checkScheduleBeforeClockIn() {
+    // Check if employee has a schedule
+    if (config.hasSchedule === false) {
+        showNotification('You cannot clock in because you have no assigned schedule. Please contact your administrator.', 'error');
+        return false;
+    }
+
+    // Also check if it's a day off (no shift for today)
+    if (config.isDayOff === true) {
+        showNotification('You cannot clock in today as it is your day off. Please contact your administrator if you need to work today.', 'error');
+        return false;
+    }
+
+    return true;
+}
+
+// Override the handleAttendance to check schedule first
+const originalHandleAttendance = window.handleAttendance;
+window.handleAttendance = function (action) {
+    // Only check for clock_in action
+    if (action === 'clock_in') {
+        if (!checkScheduleBeforeClockIn()) {
+            return; // Stop if schedule check fails
+        }
+    }
+
+    // Call the original function
+    if (originalHandleAttendance) {
+        originalHandleAttendance(action);
+    }
+};
 
 function handleAttendance(action) {
     const csrfToken = config.csrfToken;
@@ -139,6 +189,7 @@ function handleAttendance(action) {
             buttons.forEach(btn => btn.disabled = false);
         });
 }
+
 function updateUIForStatus(status, elapsedSeconds) {
     // Hide all buttons first
     const clockInBtn = document.getElementById('clockInBtn');
@@ -162,6 +213,8 @@ function updateUIForStatus(status, elapsedSeconds) {
     // Show relevant buttons
     if (status === 'clocked_out') {
         clockInBtn.classList.remove('hidden');
+        // Reapply schedule check for clock in button
+        disableClockInIfNoSchedule();
         updateTimerDisplay(0);
         statusEl.textContent = 'READY TO CLOCK IN';
         if (overtimeIndicator) overtimeIndicator.classList.add('hidden');

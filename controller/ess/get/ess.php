@@ -313,6 +313,10 @@ $currentMonth = date('Y-m');
 $currentMonthName = date('F Y');
 $currentDay = (int) date('j');
 
+// ============================================
+// SCHEDULE DATA FOR ATTENDANCE CHECK
+// ============================================
+
 // Get employee's shift information
 $employeeShift = $db->query("
     SELECT s.*, e.shift_id 
@@ -321,8 +325,76 @@ $employeeShift = $db->query("
     WHERE e.id = ?
 ", [$employeeId])->fetch_one();
 
+// Get this week's schedule for attendance check
+$scheduleWeekStart = date('Y-m-d', strtotime('monday this week'));
+$scheduleWeekEnd = date('Y-m-d', strtotime('sunday this week'));
+
+// Get employee's schedule for the week
+$scheduleEmployeeShifts = $db->query("
+    SELECT 
+        es.*,
+        s.shift_name,
+        s.start_time,
+        s.end_time,
+        s.shift_code
+    FROM employee_schedules es
+    LEFT JOIN shifts s ON es.shift_id = s.id
+    WHERE es.employee_id = ? 
+    AND es.schedule_date BETWEEN ? AND ?
+    AND es.status = 'scheduled'
+    ORDER BY es.schedule_date ASC
+", [$employeeId, $scheduleWeekStart, $scheduleWeekEnd])->find();
+
+// Create a map by date for easy access
+$scheduleByDate = [];
+foreach ($scheduleEmployeeShifts as $shift) {
+    $scheduleByDate[$shift['schedule_date']] = $shift;
+}
+
+// Generate the week days (Monday to Sunday)
+$scheduleWeekDays = [];
+
+for ($i = 0; $i < 7; $i++) {
+    $date = date('Y-m-d', strtotime($scheduleWeekStart . " +$i days"));
+    $dayName = date('l', strtotime($date));
+    $dayAbbr = date('D', strtotime($date));
+    $formattedDate = date('M j', strtotime($date));
+
+    $shiftData = $scheduleByDate[$date] ?? null;
+
+    $scheduleWeekDays[] = [
+        'date' => $date,
+        'day_name' => $dayName,
+        'day_abbr' => $dayAbbr,
+        'formatted_date' => $formattedDate,
+        'has_shift' => !empty($shiftData),
+        'shift' => $shiftData,
+        'is_today' => ($date == date('Y-m-d')),
+        'is_past' => ($date < date('Y-m-d')),
+        'is_future' => ($date > date('Y-m-d'))
+    ];
+}
+
+// Check if employee has any schedule assigned
+$hasSchedule = false;
+$isDayOff = true;
+
+if ($employeeShift && !empty($employeeShift['shift_id'])) {
+    $hasSchedule = true;
+
+    // Check if today is a work day based on the schedule week days
+    $todayHasShift = false;
+    foreach ($scheduleWeekDays as $day) {
+        if ($day['is_today'] && $day['has_shift']) {
+            $todayHasShift = true;
+            break;
+        }
+    }
+
+    $isDayOff = !$todayHasShift;
+}
+
 // Get current attendance status
-// Get current attendance status - IMPROVED QUERY
 $currentAttendance = $db->query("
     SELECT * FROM attendance 
     WHERE employee_id = ? AND status != 'clocked_out' 
@@ -341,6 +413,45 @@ if (!$currentAttendance) {
 $attendanceStatus = 'clocked_out';
 $elapsedSeconds = 0;
 $pauseTotal = 0;
+
+if ($currentAttendance) {
+    $attendanceStatus = $currentAttendance['status'];
+
+    // Set timezone
+    date_default_timezone_set('Asia/Manila');
+
+    // Get current timestamp in Philippines time
+    $now = new DateTime('now', new DateTimeZone('Asia/Manila'));
+
+    // Create DateTime objects from database timestamps
+    $clockIn = new DateTime($currentAttendance['clock_in'], new DateTimeZone('Asia/Manila'));
+
+    if ($attendanceStatus == 'clocked_in') {
+        // Calculate difference in seconds
+        $elapsedSeconds = $now->getTimestamp() - $clockIn->getTimestamp();
+
+        // Subtract pause time (pause_total is in minutes, convert to seconds)
+        $pauseSeconds = ($currentAttendance['pause_total'] ?? 0) * 60;
+        $elapsedSeconds -= $pauseSeconds;
+
+    } elseif ($attendanceStatus == 'paused') {
+        // When paused, elapsed time is up to pause start
+        if ($currentAttendance['pause_start']) {
+            $pauseStart = new DateTime($currentAttendance['pause_start'], new DateTimeZone('Asia/Manila'));
+            $elapsedSeconds = $pauseStart->getTimestamp() - $clockIn->getTimestamp();
+
+            // Subtract pause time that was already accumulated
+            $pauseSeconds = ($currentAttendance['pause_total'] ?? 0) * 60;
+            $elapsedSeconds -= $pauseSeconds;
+        }
+    }
+
+    // Ensure elapsed seconds is never negative and is an integer
+    $elapsedSeconds = max(0, (int) $elapsedSeconds);
+    $pauseTotal = (int) ($currentAttendance['pause_total'] ?? 0);
+}
+
+$showClockIn = ($attendanceStatus == 'clocked_out');
 
 // DEBUG: Log what we found
 error_log("Current Attendance Query Result: " . ($currentAttendance ? json_encode($currentAttendance) : 'none'));
@@ -1757,6 +1868,12 @@ view_path('ess', 'index', [
     'shiftUpcoming' => $shiftUpcoming,
     'shiftEmployees' => $shiftEmployees,
     'shiftRecentRequests' => $shiftRecentRequests,
+    'csrfToken' => $_SESSION['csrf_token'] ?? '',
+    'currentAttendanceId' => $currentAttendance['id'] ?? null,
+    'currentStatus' => $attendanceStatus,
+    'shiftStartTime' => $currentAttendance['clock_in'] ?? null,
+    'hasSchedule' => $hasSchedule,
+    'isDayOff' => $isDayOff,
 
     // SCHEDULE MANAGEMENT VARIABLES
     'scheduleCurrentDate' => $scheduleCurrentDate,
