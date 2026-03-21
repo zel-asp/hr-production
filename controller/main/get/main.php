@@ -25,7 +25,7 @@ try {
 // ============================================
 try {
     $allApplicants = $db->query(
-        "SELECT id, full_name, email, phone, position, experience,contract_signing_date, education, skills, resume_path, cover_note, status, hired_date, start_date, created_at, age, gender, shift, rate_per_hour
+        "SELECT *
         FROM applicants ORDER BY created_at DESC"
     )->find();
 } catch (\Throwable $th) {
@@ -41,6 +41,49 @@ try {
 } catch (\Throwable $th) {
     $recentApplicants = [];
     error_log($th->getMessage());
+}
+
+// Get counts for stats cards
+try {
+    $totalApplicants = $db->query("SELECT COUNT(*) as count FROM applicants")->fetch_one()['count'] ?? 0;
+} catch (\Throwable $th) {
+    $totalApplicants = 0;
+}
+
+try {
+    $newCount = $db->query("SELECT COUNT(*) as count FROM applicants WHERE LOWER(status) = 'new'")->fetch_one()['count'] ?? 0;
+} catch (\Throwable $th) {
+    $newCount = 0;
+}
+
+try {
+    $reviewCount = $db->query("SELECT COUNT(*) as count FROM applicants WHERE LOWER(status) = 'review'")->fetch_one()['count'] ?? 0;
+} catch (\Throwable $th) {
+    $reviewCount = 0;
+}
+
+try {
+    $interviewCount = $db->query("SELECT COUNT(*) as count FROM applicants WHERE LOWER(status) = 'interview'")->fetch_one()['count'] ?? 0;
+} catch (\Throwable $th) {
+    $interviewCount = 0;
+}
+
+try {
+    $contractCount = $db->query("SELECT COUNT(*) as count FROM applicants WHERE LOWER(status) = 'contract'")->fetch_one()['count'] ?? 0;
+} catch (\Throwable $th) {
+    $contractCount = 0;
+}
+
+try {
+    $hiredCount = $db->query("SELECT COUNT(*) as count FROM applicants WHERE LOWER(status) = 'hired'")->fetch_one()['count'] ?? 0;
+} catch (\Throwable $th) {
+    $hiredCount = 0;
+}
+
+try {
+    $rejectedCount = $db->query("SELECT COUNT(*) as count FROM applicants WHERE LOWER(status) = 'rejected'")->fetch_one()['count'] ?? 0;
+} catch (\Throwable $th) {
+    $rejectedCount = 0;
 }
 
 // ============================================
@@ -3557,9 +3600,6 @@ $payrollPage = isset($_GET['payroll_page']) ? max(1, (int) $_GET['payroll_page']
 $payrollPerPage = 10;
 $payrollOffset = ($payrollPage - 1) * $payrollPerPage;
 
-// Check if showing all records
-$showAll = isset($_GET['show_all']) && $_GET['show_all'] == '1';
-
 // Filter parameters
 $payrollStatusFilter = isset($_GET['payroll_status']) ? $_GET['payroll_status'] : '';
 $payrollDepartmentFilter = isset($_GET['payroll_department']) ? $_GET['payroll_department'] : '';
@@ -3774,81 +3814,6 @@ foreach ($payrollAllEmployees as $emp) {
 
 $payrollTotalEmployees = count($payrollEmployees);
 
-// ============================================
-// CALCULATE APPROVED AND PENDING COUNTS FOR PROCESS ALL BUTTON
-// ============================================
-
-$payrollReadyForProcessing = 0; // Approved attendance + NOT processed
-$payrollTotalApproved = 0;      // Total with approved attendance (including processed)
-$payrollApprovedAndProcessed = 0; // Approved attendance + already processed
-$payrollPendingAttendanceCount = 0; // Pending attendance approval
-
-foreach ($payrollEmployees as $emp) {
-    if ($emp['attendance_summary_status'] == 'approved') {
-        $payrollTotalApproved++;
-
-        // Check if it's already processed
-        if ($emp['status'] == 'Processed' || $emp['status'] == 'Processing') {
-            $payrollApprovedAndProcessed++;
-        } else {
-            $payrollReadyForProcessing++;
-        }
-    } elseif ($emp['attendance_summary_status'] == 'pending') {
-        $payrollPendingAttendanceCount++;
-    }
-}
-
-// ============================================
-// FILTER EMPLOYEES BASED ON STATUS
-// ============================================
-
-// Filter employees based on status if needed
-if (!empty($payrollStatusFilter)) {
-    $payrollFilteredEmployees = array_filter($payrollEmployees, function ($emp) use ($payrollStatusFilter) {
-        return $emp['status'] == $payrollStatusFilter;
-    });
-} else {
-    $payrollFilteredEmployees = $payrollEmployees;
-}
-
-// Apply department filter
-if (!empty($payrollDepartmentFilter)) {
-    $payrollFilteredEmployees = array_filter($payrollFilteredEmployees, function ($emp) use ($payrollDepartmentFilter) {
-        return $emp['department'] == $payrollDepartmentFilter;
-    });
-}
-
-// Re-index array
-$payrollFilteredEmployees = array_values($payrollFilteredEmployees);
-$payrollTotalFiltered = count($payrollFilteredEmployees);
-
-// Paginate - Show all if show_all is true
-if ($showAll) {
-    $payrollPaginatedEmployees = $payrollFilteredEmployees;
-    $payrollTotalPages = 1;
-    $payrollPage = 1;
-} else {
-    $payrollPaginatedEmployees = array_slice($payrollFilteredEmployees, $payrollOffset, $payrollPerPage);
-    $payrollTotalPages = ceil($payrollTotalFiltered / $payrollPerPage);
-}
-
-// Calculate footer totals for displayed page
-$payrollPageRegularHours = 0;
-$payrollPageOvertimeHours = 0;
-$payrollPageClaimsTotal = 0;
-$payrollPageNetTotal = 0;
-
-foreach ($payrollPaginatedEmployees as $emp) {
-    $payrollPageRegularHours += $emp['total_regular_hours'];
-    $payrollPageOvertimeHours += $emp['total_overtime_hours'];
-    $payrollPageClaimsTotal += $emp['claims_amount'];
-    $payrollPageNetTotal += $emp['net_pay'];
-}
-$payrollPageAverageNet = $payrollPageNetTotal > 0 ? round($payrollPageNetTotal / count($payrollPaginatedEmployees)) : 0;
-
-// ============================================
-// PAYROLL HISTORY SECTION
-// ============================================
 
 // Get total count of payroll history periods
 try {
@@ -3885,7 +3850,87 @@ try {
     error_log("Error fetching all payroll history: " . $th->getMessage());
 }
 
-// Get payroll history grouped by period (for main display - limited to 3)
+// ============================================
+// CALCULATE APPROVED AND PENDING COUNTS FOR PROCESS ALL BUTTON
+// ============================================
+// Now we can safely access all the data because $payrollEmployees is fully built
+
+$payrollReadyForProcessing = 0; // Approved attendance + NOT processed
+$payrollTotalApproved = 0;      // Total with approved attendance (including processed)
+$payrollApprovedAndProcessed = 0; // Approved attendance + already processed
+$payrollPendingAttendanceCount = 0; // Pending attendance approval
+
+foreach ($payrollEmployees as $emp) {
+    if ($emp['attendance_summary_status'] == 'approved') {
+        $payrollTotalApproved++;
+
+        // Check if it's already processed
+        if ($emp['status'] == 'Processed' || $emp['status'] == 'Processing') {
+            $payrollApprovedAndProcessed++;
+        } else {
+            $payrollReadyForProcessing++;
+        }
+    } elseif ($emp['attendance_summary_status'] == 'pending') {
+        $payrollPendingAttendanceCount++;
+    }
+}
+
+// For the Process All button, we use $payrollReadyForProcessing
+// For display counters, we have all the data we need
+
+// ============================================
+// FILTER EMPLOYEES BASED ON STATUS
+// ============================================
+
+// Filter employees based on status if needed
+if (!empty($payrollStatusFilter)) {
+    $payrollFilteredEmployees = array_filter($payrollEmployees, function ($emp) use ($payrollStatusFilter) {
+        return $emp['status'] == $payrollStatusFilter;
+    });
+} else {
+    $payrollFilteredEmployees = $payrollEmployees;
+}
+
+// Apply department filter
+if (!empty($payrollDepartmentFilter)) {
+    $payrollFilteredEmployees = array_filter($payrollFilteredEmployees, function ($emp) use ($payrollDepartmentFilter) {
+        return $emp['department'] == $payrollDepartmentFilter;
+    });
+}
+
+// Re-index array
+$payrollFilteredEmployees = array_values($payrollFilteredEmployees);
+$payrollTotalFiltered = count($payrollFilteredEmployees);
+
+// Paginate
+$payrollPaginatedEmployees = array_slice($payrollFilteredEmployees, $payrollOffset, $payrollPerPage);
+$payrollTotalPages = ceil($payrollTotalFiltered / $payrollPerPage);
+
+// Calculate footer totals for displayed page
+$payrollPageRegularHours = 0;
+$payrollPageOvertimeHours = 0;
+$payrollPageClaimsTotal = 0;
+$payrollPageNetTotal = 0;
+
+foreach ($payrollPaginatedEmployees as $emp) {
+    $payrollPageRegularHours += $emp['total_regular_hours'];
+    $payrollPageOvertimeHours += $emp['total_overtime_hours'];
+    $payrollPageClaimsTotal += $emp['claims_amount'];
+    $payrollPageNetTotal += $emp['net_pay'];
+}
+$payrollPageAverageNet = $payrollPageNetTotal > 0 ? round($payrollPageNetTotal / count($payrollPaginatedEmployees)) : 0;
+
+// Format currency function
+function formatPayrollCurrency($amount)
+{
+    return '₱' . number_format($amount, 2);
+}
+
+// ============================================
+// PAYROLL HISTORY SECTION
+// ============================================
+
+// Get payroll history grouped by period
 try {
     $payrollHistory = $db->query("
         SELECT 
@@ -3906,12 +3951,6 @@ try {
 } catch (\Throwable $th) {
     $payrollHistory = [];
     error_log("Error fetching payroll history: " . $th->getMessage());
-}
-
-// Format currency function
-function formatPayrollCurrency($amount)
-{
-    return '₱' . number_format($amount, 2);
 }
 
 // Handle Excel export request
@@ -4043,6 +4082,10 @@ if (isset($_GET['export_all_history'])) {
 
     exit();
 }
+
+// REMOVE the duplicate calculation at the bottom - it's no longer needed
+// The counts are now properly calculated above
+
 
 // ============================================
 // EMPLOYEE SCHEDULES SECTION
@@ -5029,6 +5072,13 @@ view_path('main', 'index', [
     // Applicants
     'applicants' => $allApplicants,
     'recentApplicants' => $recentApplicants,
+    'totalApplicants' => $totalApplicants,
+    'newCount' => $newCount,
+    'reviewCount' => $reviewCount,
+    'interviewCount' => $interviewCount,
+    'contractCount' => $contractCount,
+    'hiredCount' => $hiredCount,
+    'rejectedCount' => $hiredCount,
 
     'interventionAssignments' => $interventionAssignments,
     'interventionPage' => $interventionPage,
@@ -5299,7 +5349,6 @@ view_path('main', 'index', [
     'hmoRecentEnrollments' => $hmoRecentEnrollments,
     'hmoBenefitsList' => $hmoBenefitsList,
 
-
     // PAYROLL VARIABLES
     'payrollPage' => $payrollPage,
     'payrollPerPage' => $payrollPerPage,
@@ -5352,10 +5401,4 @@ view_path('main', 'index', [
 
     'shiftSwapRequests' => $shiftSwapRequests,
     'shiftSwapPendingCount' => $shiftSwapPendingCount,
-
-    'payrollReadyForProcessing' => $payrollReadyForProcessing,
-    'payrollTotalApproved' => $payrollTotalApproved,
-    'payrollApprovedAndProcessed' => $payrollApprovedAndProcessed,
-    'payrollPendingAttendanceCount' => $payrollPendingAttendanceCount,
-    'showAll' => $showAll,
 ]);
