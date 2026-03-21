@@ -3853,7 +3853,6 @@ try {
 // ============================================
 // CALCULATE APPROVED AND PENDING COUNTS FOR PROCESS ALL BUTTON
 // ============================================
-// Now we can safely access all the data because $payrollEmployees is fully built
 
 $payrollReadyForProcessing = 0; // Approved attendance + NOT processed
 $payrollTotalApproved = 0;      // Total with approved attendance (including processed)
@@ -3864,7 +3863,6 @@ foreach ($payrollEmployees as $emp) {
     if ($emp['attendance_summary_status'] == 'approved') {
         $payrollTotalApproved++;
 
-        // Check if it's already processed
         if ($emp['status'] == 'Processed' || $emp['status'] == 'Processing') {
             $payrollApprovedAndProcessed++;
         } else {
@@ -3875,6 +3873,8 @@ foreach ($payrollEmployees as $emp) {
     }
 }
 
+// ADD THIS LINE RIGHT HERE:
+$payrollApprovedCount = $payrollTotalApproved;
 // For the Process All button, we use $payrollReadyForProcessing
 // For display counters, we have all the data we need
 
@@ -5401,4 +5401,5 @@ view_path('main', 'index', [
 
     'shiftSwapRequests' => $shiftSwapRequests,
     'shiftSwapPendingCount' => $shiftSwapPendingCount,
+    'payrollApprovedCount' => $payrollApprovedCount,
 ]);
