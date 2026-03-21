@@ -13,7 +13,7 @@
                 <span class="inline-flex items-center gap-1.5 text-xs">
                     <span class="w-2.5 h-2.5 bg-green-500 rounded-full ring-2 ring-green-100"></span>
                     <span class="text-gray-600 font-medium">Approved:</span>
-                    <span class="text-gray-900 font-bold"><?= $payrollApprovedCount ?? 0 ?></span>
+                    <span class="text-gray-900 font-bold"><?= $payrollTotalApproved ?? 0 ?></span>
                 </span>
                 <span class="text-gray-300">|</span>
                 <span class="inline-flex items-center gap-1.5 text-xs">
@@ -37,18 +37,6 @@
                 <input type="hidden" name="period_end" value="<?= $payrollPeriodEnd ?>">
 
                 <?php
-                $payrollReadyForProcessing = 0;
-                $payrollTotalApproved = 0;
-
-                foreach ($payrollEmployees as $emp) {
-                    if ($emp['attendance_summary_status'] == 'approved') {
-                        $payrollTotalApproved++;
-                        if ($emp['status'] != 'Processed' && $emp['status'] != 'Processing') {
-                            $payrollReadyForProcessing++;
-                        }
-                    }
-                }
-
                 $hasReadyData = ($payrollReadyForProcessing > 0);
                 $buttonDisabled = !$hasReadyData;
                 $buttonTitle = $hasReadyData
@@ -57,9 +45,7 @@
                 ?>
 
                 <button type="submit" <?= $buttonDisabled ? 'disabled' : '' ?>
-                    class="
-                    <?= $buttonDisabled ? 'bg-gray-200 cursor-not-allowed opacity-60' : 'bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg shadow-blue-200' ?> 
-                    px-5 py-2.5 rounded-xl transition-all duration-200 flex items-center gap-2 whitespace-nowrap font-medium" <?= $buttonDisabled ? 'disabled' : '' ?>
+                    class="<?= $buttonDisabled ? 'bg-gray-200 cursor-not-allowed opacity-60' : 'bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg shadow-blue-200' ?> px-5 py-2.5 rounded-xl transition-all duration-200 flex items-center gap-2 whitespace-nowrap font-medium"
                     onclick="return <?= $hasReadyData ? 'confirm(\'Process payroll for ' . $payrollReadyForProcessing . ' employees with approved data? This may take a moment.\')' : 'false' ?>"
                     title="<?= $buttonTitle ?>">
 
@@ -136,6 +122,8 @@
                         </option>
                         <option value="Pending" <?= $payrollStatusFilter == 'Pending' ? 'selected' : '' ?>>Pending</option>
                         <option value="Rejected" <?= $payrollStatusFilter == 'Rejected' ? 'selected' : '' ?>>Rejected
+                        </option>
+                        <option value="No Data" <?= $payrollStatusFilter == 'No Data' ? 'selected' : '' ?>>No Data
                         </option>
                     </select>
                     <i
@@ -233,7 +221,7 @@
             <div class="flex items-center gap-4">
                 <span class="text-sm text-gray-500 bg-white px-3 py-1.5 rounded-lg border border-gray-200">
                     <i class="far fa-user mr-1.5 text-gray-400"></i>
-                    <?= $payrollTotalEmployees ?> employees
+                    <?= $payrollTotalFiltered ?> employees
                 </span>
                 <span class="inline-flex items-center gap-1.5 text-xs bg-green-50 px-3 py-1.5 rounded-lg">
                     <span class="w-2 h-2 bg-green-500 rounded-full ring-2 ring-green-100"></span>
@@ -451,7 +439,6 @@
                                             <?php
                                             $hasAttendanceData = ($emp['total_regular_hours'] > 0 || $emp['total_overtime_hours'] > 0);
                                             $hasClaims = ($emp['claims_amount'] > 0);
-                                            $hasAnyData = $hasAttendanceData || $hasClaims;
                                             $hasAttendanceSummary = ($emp['attendance_summary_status'] != 'none');
                                             ?>
 
@@ -599,12 +586,10 @@
                                     <div class="flex flex-col items-center">
                                         <i class="fas fa-calculator text-5xl mb-4 text-gray-300"></i>
                                         <p class="text-lg font-semibold text-gray-700">No payroll data found</p>
-                                        <p class="text-sm text-gray-400 mt-1">Click "Process Payroll" to generate payroll
-                                            for this period</p>
+                                        <p class="text-sm text-gray-400 mt-1">No employees match the current filters</p>
                                     </div>
-                                </td>
-                            </tr>
-                        <?php endif; ?>
+                                </td </tr>
+                            <?php endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -804,7 +789,7 @@
                 </div>
             </div>
             <button onclick="closeModal('allPayrollHistoryModal')"
-                class="text-gray-400 hover:text-gray-600 transition-colors w-3 h-3 flex items-center justify-center rounded-lg hover:bg-gray-100 absolute right-5 top-5 md:inline">
+                class="text-gray-400 hover:text-gray-600 transition-colors w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100">
                 <i class="fas fa-xmark text-xl"></i>
             </button>
         </div>
@@ -829,22 +814,17 @@
                                 <th class="text-left py-3 px-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
                                     Period</th>
                                 <th class="text-left py-3 px-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                    Processed
-                                    Date</th>
+                                    Processed Date</th>
                                 <th class="text-left py-3 px-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                    Employees
-                                </th>
+                                    Employees</th>
                                 <th class="text-left py-3 px-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                    Gross Pay
-                                </th>
+                                    Gross Pay</th>
                                 <th class="text-left py-3 px-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
                                     Claims</th>
                                 <th class="text-left py-3 px-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Net
-                                    Pay
-                                </th>
+                                    Pay</th>
                                 <th class="text-left py-3 px-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                    Actions
-                                </th>
+                                    Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1113,5 +1093,13 @@
         else url.searchParams.delete('payroll_department');
 
         window.location.href = url.toString();
+    }
+
+    function openModal(modalId) {
+        document.getElementById(modalId).classList.remove('hidden');
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.add('hidden');
     }
 </script>
