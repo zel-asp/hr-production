@@ -1,51 +1,17 @@
 <?php
 // ============================================
-// FIXED CORS HANDLER - Place this at the top
+// COMPENSATION REVIEWS API - FIXED (No duplicate functions)
 // ============================================
-// Allow from any origin
-if (isset($_SERVER['HTTP_ORIGIN'])) {
-    header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
-    header('Access-Control-Allow-Credentials: true');
-    header('Access-Control-Max-Age: 86400'); // cache for 1 day
-}
 
-// Access-Control headers are received during OPTIONS requests
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD']))
-        header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+// Error reporting
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
 
-    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']))
-        header("Access-Control-Allow-Headers: {$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
-
-    exit(0);
-}
-
-// Your existing code continues...
+// Include required files (functions.php already has sendResponse, getRequestData, etc.)
+require_once __DIR__ . '/../cors-handler.php';
 require_once __DIR__ . '/functions.php';
 require_once __DIR__ . '/keys.php';
-
-// Helper functions
-function sendResponse($data, $status = 200)
-{
-    http_response_code($status);
-    header('Content-Type: application/json');
-    echo json_encode($data);
-    exit;
-}
-
-function sendError($message, $status = 400)
-{
-    http_response_code($status);
-    header('Content-Type: application/json');
-    echo json_encode(['error' => $message]);
-    exit;
-}
-
-function getRequestData()
-{
-    $data = json_decode(file_get_contents('php://input'), true);
-    return $data ?: [];
-}
 
 $apiInfo = validateApiKey();
 $db = getDB();
@@ -64,6 +30,8 @@ if ($method === 'GET') {
              WHERE cr.id = ?",
             [$id]
         )->fetch_one();
+
+        sendResponse($result ?: []);
     } else {
         $sql = "SELECT cr.*, e.full_name, e.department, e.position, e.email 
                 FROM compensation_reviews cr
@@ -83,13 +51,13 @@ if ($method === 'GET') {
             $sql .= " ORDER BY cr.created_at DESC";
             $result = $db->query($sql)->find();
         }
-    }
 
-    sendResponse($result);
+        sendResponse($result ?: []);
+    }
 }
 
 // POST: Handle compensation actions
-if ($method === 'POST') {
+elseif ($method === 'POST') {
     if (!canWrite($apiInfo)) {
         sendError('Write permission required', 403);
     }
@@ -107,6 +75,7 @@ if ($method === 'POST') {
         $db->beginTransaction();
 
         try {
+            // Get compensation review
             $review = $db->query(
                 "SELECT cr.*, e.id as employee_id, e.full_name, e.email 
                  FROM compensation_reviews cr
@@ -119,11 +88,13 @@ if ($method === 'POST') {
                 throw new Exception('Compensation review not found');
             }
 
+            // Update status to 'approved'
             $db->query(
                 "UPDATE compensation_reviews SET status = 'approved', finance_approved_at = NOW() WHERE id = ?",
                 [$id]
             );
 
+            // UPDATE HOURLY RATE using proposed_hourly_rate
             if (!empty($review['proposed_hourly_rate'])) {
                 $db->query(
                     "UPDATE employees SET hourly_rate = ? WHERE id = ?",
@@ -133,15 +104,20 @@ if ($method === 'POST') {
 
             $db->commit();
 
+            // NOTIFY EMPLOYEE
             $newRate = $review['proposed_hourly_rate'] ?? number_format($review['proposed_salary'] / 160, 2);
-            notifyEmployee(
-                $review['employee_id'],
-                'Compensation Approved',
-                "Your compensation has been approved! New hourly rate: ₱" . $newRate
-            );
+
+            try {
+                notifyEmployee(
+                    $review['employee_id'],
+                    'Compensation Approved',
+                    "Your compensation has been approved! New hourly rate: ₱" . $newRate
+                );
+            } catch (Exception $e) {
+                error_log("Notification failed: " . $e->getMessage());
+            }
 
             sendResponse([
-                'success' => true,
                 'message' => 'Compensation approved successfully',
                 'employee' => $review['full_name'],
                 'new_rate' => $newRate
@@ -164,7 +140,7 @@ if ($method === 'POST') {
             [$data['reason'], $id]
         );
 
-        sendResponse(['success' => true, 'message' => 'Compensation rejected']);
+        sendResponse(['message' => 'Compensation rejected']);
     }
 
     // CREATE COMPENSATION REVIEW
@@ -192,7 +168,9 @@ if ($method === 'POST') {
             ]
         );
 
-        sendResponse(['success' => true, 'id' => $db->lastInsertId(), 'message' => 'Compensation review created'], 201);
+        sendResponse(['id' => $db->lastInsertId(), 'message' => 'Compensation review created'], 201);
+    } else {
+        sendError('Invalid action', 400);
     }
 }
 
@@ -221,7 +199,7 @@ elseif ($method === 'PUT') {
         ]
     );
 
-    sendResponse(['success' => true, 'message' => 'Compensation updated']);
+    sendResponse(['message' => 'Compensation updated']);
 }
 
 // DELETE: Delete compensation
@@ -236,6 +214,11 @@ elseif ($method === 'DELETE') {
     }
 
     $db->query("DELETE FROM compensation_reviews WHERE id = ? AND status = 'pending_finance'", [$id]);
-    sendResponse(['success' => true, 'message' => 'Compensation deleted']);
+    sendResponse(['message' => 'Compensation deleted']);
+}
+
+// Handle unsupported methods
+else {
+    sendError('Method not allowed', 405);
 }
 ?>
