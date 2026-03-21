@@ -25,7 +25,7 @@ try {
 // ============================================
 try {
     $allApplicants = $db->query(
-        "SELECT *
+        "SELECT id, full_name, email, phone, position, experience,contract_signing_date, education, skills, resume_path, cover_note, status, hired_date, start_date, created_at, age, gender, shift, rate_per_hour
         FROM applicants ORDER BY created_at DESC"
     )->find();
 } catch (\Throwable $th) {
@@ -41,49 +41,6 @@ try {
 } catch (\Throwable $th) {
     $recentApplicants = [];
     error_log($th->getMessage());
-}
-
-// Get counts for stats cards
-try {
-    $totalApplicants = $db->query("SELECT COUNT(*) as count FROM applicants")->fetch_one()['count'] ?? 0;
-} catch (\Throwable $th) {
-    $totalApplicants = 0;
-}
-
-try {
-    $newCount = $db->query("SELECT COUNT(*) as count FROM applicants WHERE LOWER(status) = 'new'")->fetch_one()['count'] ?? 0;
-} catch (\Throwable $th) {
-    $newCount = 0;
-}
-
-try {
-    $reviewCount = $db->query("SELECT COUNT(*) as count FROM applicants WHERE LOWER(status) = 'review'")->fetch_one()['count'] ?? 0;
-} catch (\Throwable $th) {
-    $reviewCount = 0;
-}
-
-try {
-    $interviewCount = $db->query("SELECT COUNT(*) as count FROM applicants WHERE LOWER(status) = 'interview'")->fetch_one()['count'] ?? 0;
-} catch (\Throwable $th) {
-    $interviewCount = 0;
-}
-
-try {
-    $contractCount = $db->query("SELECT COUNT(*) as count FROM applicants WHERE LOWER(status) = 'contract'")->fetch_one()['count'] ?? 0;
-} catch (\Throwable $th) {
-    $contractCount = 0;
-}
-
-try {
-    $hiredCount = $db->query("SELECT COUNT(*) as count FROM applicants WHERE LOWER(status) = 'hired'")->fetch_one()['count'] ?? 0;
-} catch (\Throwable $th) {
-    $hiredCount = 0;
-}
-
-try {
-    $rejectedCount = $db->query("SELECT COUNT(*) as count FROM applicants WHERE LOWER(status) = 'rejected'")->fetch_one()['count'] ?? 0;
-} catch (\Throwable $th) {
-    $rejectedCount = 0;
 }
 
 // ============================================
@@ -3853,6 +3810,7 @@ try {
 // ============================================
 // CALCULATE APPROVED AND PENDING COUNTS FOR PROCESS ALL BUTTON
 // ============================================
+// Now we can safely access all the data because $payrollEmployees is fully built
 
 $payrollReadyForProcessing = 0; // Approved attendance + NOT processed
 $payrollTotalApproved = 0;      // Total with approved attendance (including processed)
@@ -3863,6 +3821,7 @@ foreach ($payrollEmployees as $emp) {
     if ($emp['attendance_summary_status'] == 'approved') {
         $payrollTotalApproved++;
 
+        // Check if it's already processed
         if ($emp['status'] == 'Processed' || $emp['status'] == 'Processing') {
             $payrollApprovedAndProcessed++;
         } else {
@@ -3873,8 +3832,6 @@ foreach ($payrollEmployees as $emp) {
     }
 }
 
-// ADD THIS LINE RIGHT HERE:
-$payrollApprovedCount = $payrollTotalApproved;
 // For the Process All button, we use $payrollReadyForProcessing
 // For display counters, we have all the data we need
 
@@ -5072,13 +5029,6 @@ view_path('main', 'index', [
     // Applicants
     'applicants' => $allApplicants,
     'recentApplicants' => $recentApplicants,
-    'totalApplicants' => $totalApplicants,
-    'newCount' => $newCount,
-    'reviewCount' => $reviewCount,
-    'interviewCount' => $interviewCount,
-    'contractCount' => $contractCount,
-    'hiredCount' => $hiredCount,
-    'rejectedCount' => $hiredCount,
 
     'interventionAssignments' => $interventionAssignments,
     'interventionPage' => $interventionPage,
@@ -5401,5 +5351,4 @@ view_path('main', 'index', [
 
     'shiftSwapRequests' => $shiftSwapRequests,
     'shiftSwapPendingCount' => $shiftSwapPendingCount,
-    'payrollApprovedCount' => $payrollApprovedCount,
 ]);
