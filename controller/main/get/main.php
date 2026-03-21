@@ -25,7 +25,7 @@ try {
 // ============================================
 try {
     $allApplicants = $db->query(
-        "SELECT id, full_name, email, phone, position, experience,contract_signing_date, education, skills, resume_path, cover_note, status, hired_date, start_date, created_at, age, gender, shift, rate_per_hour
+        "SELECT *
         FROM applicants ORDER BY created_at DESC"
     )->find();
 } catch (\Throwable $th) {
@@ -41,6 +41,49 @@ try {
 } catch (\Throwable $th) {
     $recentApplicants = [];
     error_log($th->getMessage());
+}
+
+// Get counts for stats cards
+try {
+    $totalApplicants = $db->query("SELECT COUNT(*) as count FROM applicants")->fetch_one()['count'] ?? 0;
+} catch (\Throwable $th) {
+    $totalApplicants = 0;
+}
+
+try {
+    $newCount = $db->query("SELECT COUNT(*) as count FROM applicants WHERE LOWER(status) = 'new'")->fetch_one()['count'] ?? 0;
+} catch (\Throwable $th) {
+    $newCount = 0;
+}
+
+try {
+    $reviewCount = $db->query("SELECT COUNT(*) as count FROM applicants WHERE LOWER(status) = 'review'")->fetch_one()['count'] ?? 0;
+} catch (\Throwable $th) {
+    $reviewCount = 0;
+}
+
+try {
+    $interviewCount = $db->query("SELECT COUNT(*) as count FROM applicants WHERE LOWER(status) = 'interview'")->fetch_one()['count'] ?? 0;
+} catch (\Throwable $th) {
+    $interviewCount = 0;
+}
+
+try {
+    $contractCount = $db->query("SELECT COUNT(*) as count FROM applicants WHERE LOWER(status) = 'contract'")->fetch_one()['count'] ?? 0;
+} catch (\Throwable $th) {
+    $contractCount = 0;
+}
+
+try {
+    $hiredCount = $db->query("SELECT COUNT(*) as count FROM applicants WHERE LOWER(status) = 'hired'")->fetch_one()['count'] ?? 0;
+} catch (\Throwable $th) {
+    $hiredCount = 0;
+}
+
+try {
+    $rejectedCount = $db->query("SELECT COUNT(*) as count FROM applicants WHERE LOWER(status) = 'rejected'")->fetch_one()['count'] ?? 0;
+} catch (\Throwable $th) {
+    $rejectedCount = 0;
 }
 
 // ============================================
@@ -3523,34 +3566,30 @@ function formatHmoCurrency($amount)
 // ============================================
 
 // Get current date info
-$payrollToday = date('Y-m-d');
+// Determine current payroll period based on cutoff rules
 $payrollCurrentDay = (int) date('d');
-$payrollCurrentMonth = date('m');
-$payrollCurrentYear = date('Y');
 
-// Determine current payroll period
-if ($payrollCurrentDay <= 5) {
-    // 1st cutoff (21st of previous month - 5th of current month)
+if ($payrollCurrentDay >= 21) {
+    // We're in the 1st cutoff period (21st to 5th of next month)
+    $payrollPeriodStart = date('Y-m-21');
+    $payrollPeriodEnd = date('Y-m-05', strtotime('+1 month'));
+    $payrollPayDate = date('Y-m-10', strtotime('+1 month'));
+    $payrollPeriodType = '1st Cutoff';
+} elseif ($payrollCurrentDay <= 5) {
+    // Still in previous 1st cutoff period
     $payrollPeriodStart = date('Y-m-21', strtotime('-1 month'));
     $payrollPeriodEnd = date('Y-m-05');
-    $payrollPeriodLabel = date('M j', strtotime($payrollPeriodStart)) . ' - ' . date('M j, Y', strtotime($payrollPeriodEnd));
-    $payrollPayDate = date('Y-m-10'); // Pay on 10th
+    $payrollPayDate = date('Y-m-10');
     $payrollPeriodType = '1st Cutoff';
 } elseif ($payrollCurrentDay <= 20) {
-    // 2nd cutoff (6th - 20th of current month)
+    // 2nd cutoff period (6th - 20th)
     $payrollPeriodStart = date('Y-m-06');
     $payrollPeriodEnd = date('Y-m-20');
-    $payrollPeriodLabel = date('M j', strtotime($payrollPeriodStart)) . ' - ' . date('M j, Y', strtotime($payrollPeriodEnd));
-    $payrollPayDate = date('Y-m-25'); // Pay on 25th
+    $payrollPayDate = date('Y-m-25');
     $payrollPeriodType = '2nd Cutoff';
-} else {
-    // 1st cutoff of next month (21st - end of month)
-    $payrollPeriodStart = date('Y-m-21');
-    $payrollPeriodEnd = date('Y-m-t');
-    $payrollPeriodLabel = date('M j', strtotime($payrollPeriodStart)) . ' - ' . date('M j, Y', strtotime($payrollPeriodEnd));
-    $payrollPayDate = date('Y-m-05', strtotime('+1 month')); // Pay on 5th of next month
-    $payrollPeriodType = '1st Cutoff (Next Month)';
 }
+
+$payrollPeriodLabel = date('M j', strtotime($payrollPeriodStart)) . ' - ' . date('M j, Y', strtotime($payrollPeriodEnd));
 
 // Pagination
 $payrollPage = isset($_GET['payroll_page']) ? max(1, (int) $_GET['payroll_page']) : 1;
@@ -3611,7 +3650,6 @@ $payrollWhereClause = !empty($payrollWhereConditions) ? "WHERE " . implode(" AND
 // PAYROLL WITH APPROVED ATTENDANCE SUMMARIES ONLY
 // ============================================
 
-// Get all active employees for payroll with their payroll summary status
 $payrollBaseSql = "
     SELECT 
         e.id,
@@ -3636,20 +3674,20 @@ $payrollBaseSql = "
             AND period_end = ?
             AND status = 'approved'
         ), 0) as total_overtime_hours,
-        -- Claims totals - FIXED: Using expense_date instead of approved_at
+        -- Claims totals - CHANGED to use created_at instead of expense_date
         COALESCE((
             SELECT SUM(amount) 
             FROM expense_claims 
             WHERE employee_id = e.id 
             AND status = 'Approved'
-            AND expense_date BETWEEN ? AND ?
+            AND DATE(created_at) BETWEEN ? AND ?   -- ← CHANGED HERE
         ), 0) as total_claims_amount,
         (
             SELECT COUNT(*) 
             FROM expense_claims 
             WHERE employee_id = e.id 
             AND status = 'Approved'
-            AND expense_date BETWEEN ? AND ?
+            AND DATE(created_at) BETWEEN ? AND ?   -- ← CHANGED HERE
         ) as claims_count,
         -- Payroll summary status (if exists)
         ps.id as payroll_summary_id,
@@ -5029,6 +5067,13 @@ view_path('main', 'index', [
     // Applicants
     'applicants' => $allApplicants,
     'recentApplicants' => $recentApplicants,
+    'totalApplicants' => $totalApplicants,
+    'newCount' => $newCount,
+    'reviewCount' => $reviewCount,
+    'interviewCount' => $interviewCount,
+    'contractCount' => $contractCount,
+    'hiredCount' => $hiredCount,
+    'rejectedCount' => $hiredCount,
 
     'interventionAssignments' => $interventionAssignments,
     'interventionPage' => $interventionPage,
