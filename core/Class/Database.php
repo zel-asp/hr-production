@@ -11,7 +11,6 @@ class Database
 
     public function __construct($config, $username = null, $password = null)
     {
-        // Use the username and password from config if not provided
         $username = $username ?? $config['username'];
         $password = $password ?? $config['password'];
 
